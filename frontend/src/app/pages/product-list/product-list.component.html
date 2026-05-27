@@ -1,0 +1,161 @@
+<div class="container">
+  @if (aviso === 'verificacion') {
+    <div class="flash warn">
+      Para publicar necesitas identidad <strong>verificada</strong>. Si acabas de registrarte, sube la foto de tu INE y
+      espera la aprobación del equipo en el panel admin.
+    </div>
+  }
+
+  <section class="hero">
+    <div>
+      <h1>Da una segunda vida a tu tecnología</h1>
+      <p>Compra, intercambia o dona equipos usados y reduce residuos electrónicos.</p>
+    </div>
+    <div class="hint">Menos residuos electrónicos, más valor compartido.</div>
+  </section>
+
+  <div class="grid">
+    <aside class="filters">
+      <h3>Filtros</h3>
+      <div class="field">
+        <label for="f-q">Buscar</label>
+        <input id="f-q" [(ngModel)]="q" name="f_q" placeholder="Ej. iPhone, laptop…" (keyup.enter)="applyFilters()" />
+      </div>
+      <div class="field">
+        <label for="f-type">Tipo</label>
+        <select id="f-type" [(ngModel)]="listingType" name="f_type">
+          <option value="">Todos</option>
+          <option value="sale">Venta</option>
+          <option value="exchange">Intercambio</option>
+          <option value="donation">Donación</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-cat">Categoría</label>
+        <select id="f-cat" [(ngModel)]="category" name="f_cat">
+          <option value="">Todas</option>
+          @for (c of presetCategories; track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-cond">Condición</label>
+        <select id="f-cond" [(ngModel)]="itemCondition" name="f_cond">
+          @for (o of conditionOptions; track o.value) {
+            <option [value]="o.value">{{ o.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-loc">Ubicación</label>
+        <input id="f-loc" [(ngModel)]="location" name="f_loc" list="loc-suggestions" placeholder="Ej. CDMX, Guadalajara…" />
+        <datalist id="loc-suggestions">
+          @for (loc of filterLocations; track loc) {
+            <option [value]="loc"></option>
+          }
+        </datalist>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+        <div class="field">
+          <label for="f-min">Precio mín. (MXN)</label>
+          <input id="f-min" [(ngModel)]="minPrice" name="f_min" inputmode="decimal" placeholder="Ej. 500" />
+        </div>
+        <div class="field">
+          <label for="f-max">Precio máx. (MXN)</label>
+          <input id="f-max" [(ngModel)]="maxPrice" name="f_max" inputmode="decimal" placeholder="Ej. 3000" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-photos">Solo con fotos</label>
+        <select id="f-photos" [(ngModel)]="withPhotos" name="f_photos">
+          <option value="">No</option>
+          <option value="1">Sí</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-sort">Ordenar</label>
+        <select id="f-sort" [(ngModel)]="sort" name="f_sort">
+          @for (s of sortOptions; track s.value) {
+            <option [value]="s.value">{{ s.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn" (click)="applyFilters()">Aplicar</button>
+        <button type="button" class="btn secondary" (click)="clearFilters()">Limpiar</button>
+      </div>
+    </aside>
+
+    <section class="products">
+      <div
+        style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px"
+      >
+        <div class="hint">
+          {{ totalResults }} anuncios
+          @if (totalPages > 1) {
+            · Página {{ page }} de {{ totalPages }}
+          }
+        </div>
+      </div>
+
+      <div class="chips" style="margin-bottom: 12px">
+        <button type="button" class="chip" [class.active]="!listingType" (click)="setType('')">Todo</button>
+        <button type="button" class="chip" [class.active]="listingType === 'sale'" (click)="setType('sale')">
+          Venta
+        </button>
+        <button type="button" class="chip" [class.active]="listingType === 'exchange'" (click)="setType('exchange')">
+          Intercambio
+        </button>
+        <button type="button" class="chip" [class.active]="listingType === 'donation'" (click)="setType('donation')">
+          Donación
+        </button>
+      </div>
+
+      @if (!products.length) {
+        <div class="panel">
+          <h2>No encontramos resultados</h2>
+          <div class="hint">Prueba con otra búsqueda o publica tu primer producto.</div>
+          <div style="margin-top: 12px">
+            <a class="btn-primary" routerLink="/sell">Publicar ahora</a>
+          </div>
+        </div>
+      } @else {
+        <div class="cards">
+          @for (p of products; track p.id) {
+            <a class="card" [routerLink]="['/products', p.id]">
+              @if (p.coverImageUrl) {
+                <div class="thumb">
+                  <img [src]="p.coverImageUrl" [alt]="p.title" />
+                </div>
+              } @else {
+                <div class="thumb">
+                  <div class="placeholder">TC</div>
+                </div>
+              }
+              <div class="body">
+                <div class="badge {{ p.listing_type }}">{{ typeLabel(p.listing_type) }}</div>
+                <h4>{{ p.title }}</h4>
+                <div class="meta">
+                  <span><strong>{{ p.category }}</strong></span>
+                  <span>·</span>
+                  <span>{{ formatCondition(p.item_condition) }}</span>
+                  <span>·</span>
+                  <span>{{ p.location }}</span>
+                </div>
+                <div class="price">{{ formatPrice(p.price_cents, p.listing_type) }}</div>
+              </div>
+            </a>
+          }
+        </div>
+      }
+
+      @if (totalPages > 1) {
+        <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 16px">
+          <button type="button" class="btn" [disabled]="page <= 1" (click)="goPage(page - 1)">Anterior</button>
+          <button type="button" class="btn" [disabled]="page >= totalPages" (click)="goPage(page + 1)">Siguiente</button>
+        </div>
+      }
+    </section>
+  </div>
+</div>

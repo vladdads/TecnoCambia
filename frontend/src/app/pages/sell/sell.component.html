@@ -1,0 +1,91 @@
+<div class="container">
+  <div class="panel wide">
+    <h2>Publicar anuncio</h2>
+    <p class="hint">Solo usuarios con identidad <strong>verificada</strong> pueden publicar.</p>
+    @if (error) {
+      <div class="error">{{ error }}</div>
+    }
+    <form (ngSubmit)="submit()">
+      <div class="form-grid-2">
+        <div class="field">
+          <label for="sell-title">Título</label>
+          <input id="sell-title" [(ngModel)]="title" name="title" required />
+        </div>
+        <div class="field">
+          <label for="sell-type">Tipo</label>
+          <select id="sell-type" [(ngModel)]="listing_type" name="listing_type">
+            <option value="sale">Venta</option>
+            <option value="exchange">Intercambio</option>
+            <option value="donation">Donación</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="sell-desc">Descripción</label>
+        <textarea id="sell-desc" [(ngModel)]="description" name="description" rows="5" required></textarea>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="field">
+          <label for="sell-cat">Categoría</label>
+          <select id="sell-cat" [(ngModel)]="category" name="category" required>
+            @for (c of categories; track c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="sell-cond">Condición</label>
+          <select id="sell-cond" [(ngModel)]="item_condition" name="item_condition">
+            <option value="new">Nuevo</option>
+            <option value="like_new">Casi nuevo</option>
+            <option value="good">Bueno</option>
+            <option value="fair">Regular</option>
+            <option value="for_parts">Para piezas</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="field">
+          <label for="sell-loc">Ubicación</label>
+          <input id="sell-loc" [(ngModel)]="location" name="location" required />
+        </div>
+        <div class="field">
+          <label for="sell-price">Precio (MXN, si es venta)</label>
+          <input id="sell-price" [(ngModel)]="price" name="price" />
+        </div>
+      </div>
+
+      <div class="form-grid-3">
+        <div class="field">
+          <label for="sell-brand">Marca</label>
+          <input id="sell-brand" [(ngModel)]="brand" name="brand" />
+        </div>
+        <div class="field">
+          <label for="sell-model">Modelo</label>
+          <input id="sell-model" [(ngModel)]="model" name="model" />
+        </div>
+        <div class="field">
+          <label for="sell-year">Año</label>
+          <input id="sell-year" [(ngModel)]="year" name="year" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="sell-acc">Accesorios</label>
+        <input id="sell-acc" [(ngModel)]="accessories" name="accessories" />
+      </div>
+
+      <div class="field">
+        <label for="sell-files">Fotos (mínimo 1, hasta 6)</label>
+        <input id="sell-files" type="file" name="images" multiple accept="image/*" required (change)="onFiles($event)" />
+        <div class="hint">La primera foto será la portada. Las demás son opcionales.</div>
+      </div>
+
+      <button type="submit" class="btn-primary" style="width: 100%; margin-top: 6px">Publicar</button>
+    </form>
+    <p class="form-foot"><a routerLink="/products">Volver al catálogo</a></p>
+  </div>
+</div>

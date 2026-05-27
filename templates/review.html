@@ -1,0 +1,42 @@
+{% set title = "Calificar | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <h2>Calificar</h2>
+  <div class="hint">Deja una calificación (1 a 5) sobre esta transacción.</div>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <div class="contact" style="margin-top:10px; padding:12px; border-radius:14px; border:1px solid rgba(58,166,107,.28); background:rgba(58,166,107,.08);">
+    <div style="font-weight:1000;">Producto</div>
+    <div class="hint" style="margin-top:6px;">{{ product['title'] }}</div>
+  </div>
+
+  <form action="/review/{{ product['id'] }}" method="post" style="margin-top:12px;">
+    <div class="field">
+      <label>Calificación</label>
+      <select name="rating" required>
+        <option value="5">5 - Excelente</option>
+        <option value="4">4 - Muy bien</option>
+        <option value="3">3 - Bien</option>
+        <option value="2">2 - Regular</option>
+        <option value="1">1 - Mala</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Comentario (opcional)</label>
+      <textarea name="comment" placeholder="Ej. Buena comunicación, entrega puntual..."></textarea>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn-primary" type="submit">Enviar</button>
+      <a class="btn" href="/products">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+{% include "partials/footer.html" %}
+

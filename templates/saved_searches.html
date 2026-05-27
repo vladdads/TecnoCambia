@@ -1,0 +1,56 @@
+{% set title = "Búsquedas guardadas | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <h2 style="margin:0;">Búsquedas guardadas</h2>
+      <div class="hint">Guarda filtros para volver rápido.</div>
+    </div>
+    <a class="pill" href="/products">Explorar</a>
+  </div>
+
+  <form action="/me/saved-searches" method="post" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; width:100%; box-sizing:border-box;">
+    <input name="name" placeholder="Nombre (ej. Laptops baratas)" style="flex:1; min-width:0; max-width:100%; border-radius:12px; border:1px solid var(--tc-border); padding:10px 10px; outline:none; box-sizing:border-box;" />
+    <input name="query_string" placeholder="querystring (ej. type=sale&min_price=500)" style="flex:2; min-width:0; max-width:100%; border-radius:12px; border:1px solid var(--tc-border); padding:10px 10px; outline:none; box-sizing:border-box;" />
+    <button class="btn-primary" type="submit">Guardar</button>
+  </form>
+
+  {% if not searches or searches|length == 0 %}
+    <div style="margin-top:14px;" class="hint">Aún no guardas búsquedas.</div>
+  {% else %}
+    <div class="table-wrap" style="margin-top:14px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in searches %}
+          <tr>
+            <td>
+              <div style="font-weight:1000;">{{ s['name'] }}</div>
+              <div class="hint">{{ s['query_string'] }}</div>
+            </td>
+            <td>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a class="btn" href="/products?{{ s['query_string'] }}">Abrir</a>
+                <form action="/me/saved-searches/{{ s['id'] }}/delete" method="post" style="display:inline">
+                  <button class="btn secondary" type="submit">Eliminar</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% endif %}
+</div>
+
+{% include "partials/footer.html" %}
+

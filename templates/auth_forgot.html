@@ -1,0 +1,42 @@
+{% set title = "Restablecer contraseña | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <h2>Restablecer contraseña</h2>
+  <div class="hint">Escribe tu email y te enviaremos un enlace para elegir una nueva contraseña.</div>
+  {% if not mail_configured and not mail_debug %}
+    <div class="error" style="margin-top:10px;">
+      Aviso: el envío de correo no está configurado en este servidor. Hasta que el administrador configure SMTP
+      (variables <code>MAIL_*</code> en el entorno), no se podrá recuperar la contraseña por email.
+    </div>
+  {% endif %}
+  {% if not mail_configured and mail_debug %}
+    <div class="hint" style="margin-top:10px; padding:12px; border-radius:14px; border:1px solid rgba(37,99,235,.35); background:rgba(37,99,235,.08);">
+      <strong>Modo desarrollo (<code>MAIL_DEBUG=1</code>):</strong> no hay SMTP. Al enviar el formulario con un email registrado,
+      verás aquí el enlace para restablecer la contraseña (solo para pruebas locales).
+    </div>
+  {% endif %}
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+  {% if info %}
+    <div class="contact" style="margin-top:10px; padding:12px; border-radius:14px; border:1px solid rgba(31,156,182,.28); background:rgba(31,156,182,.08);">
+      <div style="font-weight:1000;">Información</div>
+      <div class="hint" style="margin-top:6px; white-space:pre-wrap;">{{ info }}</div>
+    </div>
+  {% endif %}
+
+  <form action="/auth/forgot" method="post" style="margin-top:12px;">
+    <div class="field">
+      <label>Email</label>
+      <input name="email" type="email" autocomplete="email" required />
+    </div>
+    <button class="btn-primary" type="submit" style="width:100%; margin-top:6px;">Generar enlace</button>
+  </form>
+</div>
+
+{% include "partials/footer.html" %}
+

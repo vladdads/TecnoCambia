@@ -1,0 +1,35 @@
+{% set title = "Reportar | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <h2>Reportar</h2>
+  <div class="hint">Ayúdanos a mantener la comunidad segura.</div>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form action="/report" method="post" style="margin-top:12px;">
+    <input type="hidden" name="product_id" value="{{ productId or '' }}" />
+    <input type="hidden" name="user_id" value="{{ userId or '' }}" />
+
+    <div class="field">
+      <label>Motivo</label>
+      <input name="reason" required placeholder="Ej. Publicación engañosa, spam, contenido inapropiado..." />
+    </div>
+    <div class="field">
+      <label>Detalles (opcional)</label>
+      <textarea name="details" placeholder="Describe qué pasó..."></textarea>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn-primary" type="submit">Enviar reporte</button>
+      <a class="btn" href="/products">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+{% include "partials/footer.html" %}
+

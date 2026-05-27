@@ -1,0 +1,49 @@
+{% set title = "Registrarse | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <h2>Crear cuenta</h2>
+  <div class="hint">Regístrate para publicar, editar y administrar tus productos.</div>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form action="/auth/register" method="post" enctype="multipart/form-data" style="margin-top:12px;">
+    <input type="hidden" name="next" value="{{ next or '' }}" />
+    <div class="field">
+      <label>Nombre</label>
+      <input name="name" autocomplete="name" required />
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input name="email" type="email" autocomplete="email" required />
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input name="password" type="password" minlength="6" autocomplete="new-password" required />
+      <div class="hint" style="margin-top:6px;">Mínimo 6 caracteres.</div>
+    </div>
+    <div class="field">
+      <label>CURP (18 caracteres)</label>
+      <input name="curp" maxlength="18" minlength="18" autocomplete="off" required style="text-transform:uppercase;" />
+    </div>
+    <div class="field">
+      <label>Foto de credencial INE (frente)</label>
+      <input name="ine_photo" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required />
+    </div>
+    <div class="hint" style="margin-top:8px;">
+      Escribe tu CURP tal como aparece en tu INE. Tu cuenta quedará en revisión hasta que un administrador valide la foto; podrás iniciar sesión, pero no publicar hasta estar verificado.
+    </div>
+    <button class="btn-primary" type="submit" style="width:100%; margin-top:6px;">Crear cuenta</button>
+  </form>
+
+  <div class="hint" style="margin-top:12px;">
+    ¿Ya tienes cuenta? <a href="/auth/login{% if next %}?next={{ next|urlencode }}{% endif %}" style="text-decoration:underline">Inicia sesión</a>
+  </div>
+</div>
+
+{% include "partials/footer.html" %}
+

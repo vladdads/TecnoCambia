@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or "Tecnocambia" }}</title>
+    <link rel="icon" href="/logo.jpeg" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <script>
+      (function(){
+        try{
+          var collapsed = localStorage.getItem('sidebarCollapsed') === '1';
+          window._tc_toggleSidebar = function(){
+            var appBody = document.querySelector('.app-body');
+            if(!appBody) return;
+            var now = appBody.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebarCollapsed', now ? '1' : '0');
+          };
+          document.addEventListener('DOMContentLoaded', function(){
+            var appBody = document.querySelector('.app-body');
+            if(appBody){
+              if(collapsed) appBody.classList.add('sidebar-collapsed');
+              else appBody.classList.remove('sidebar-collapsed');
+            }
+          });
+        }catch(e){}
+      })();
+    </script>
+    <header class="topbar">
+      <div class="container">
+        <div class="topbar-inner">
+          <a class="brand" href="/app/products" aria-label="Tecnocambia">
+            <img src="/logo.jpeg" alt="Tecnocambia logo" />
+            <div>
+              <div class="title">TECNOCAMBIA</div>
+              <div class="subtitle">Recicla · Dona · Intercambia</div>
+            </div>
+          </a>
+
+          <button type="button" class="sidebar-toggle" onclick="_tc_toggleSidebar()" aria-label="Mostrar u ocultar menú">☰</button>
+
+          <form class="search" action="/app/products" method="get" role="search">
+            <input name="q" value="{{ q or '' }}" placeholder="Buscar laptops, celulares, consolas..." />
+            <button type="submit">Buscar</button>
+          </form>
+
+          <nav class="nav-actions" aria-label="Cuenta">
+            <a class="btn-primary" href="/app/sell">Publicar</a>
+
+            {% if current_user %}
+              <a class="pill" href="/messages">Chats</a>
+              <a class="pill" href="/me/listings">Mis publicaciones</a>
+              <form action="/auth/logout" method="post" style="display:inline">
+                <button class="pill" type="submit">Salir</button>
+              </form>
+            {% else %}
+              <a class="pill" href="/app/login">Iniciar sesión</a>
+              <a class="pill" href="/app/register">Registrarse</a>
+            {% endif %}
+          </nav>
+        </div>
+
+        <div class="subnav">
+          <div class="chips">
+            <a class="chip {{ 'active' if not listingType else '' }}" href="/app/products{% if q %}?q={{ q|urlencode }}{% endif %}">Todo</a>
+            <a class="chip {{ 'active' if listingType == 'sale' else '' }}" href="/app/products?{% if q %}q={{ q|urlencode }}&{% endif %}type=sale">Venta</a>
+            <a class="chip {{ 'active' if listingType == 'exchange' else '' }}" href="/app/products?{% if q %}q={{ q|urlencode }}&{% endif %}type=exchange">Intercambio</a>
+            <a class="chip {{ 'active' if listingType == 'donation' else '' }}" href="/app/products?{% if q %}q={{ q|urlencode }}&{% endif %}type=donation">Donación</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="app-body container">
+          <aside class="app-sidebar" aria-label="Menú principal">
+            <h3>Explorar</h3>
+            <nav>
+              <a href="/app/products" class="{% if request.path.startswith('/app/products') %}active{% endif %}">Catálogo</a>
+              <a href="/app/sell">Publicar anuncio</a>
+            </nav>
+            <div class="side-divider"></div>
+            <h3>Mi cuenta</h3>
+            <nav>
+              <a href="/account/profile">Mi perfil</a>
+              <a href="/me/listings">Mis publicaciones</a>
+              <a href="/messages">Chats</a>
+              <a href="/me/favorites">Favoritos</a>
+              <a href="/me/purchases">Mis ofertas</a>
+            </nav>
+            {% if current_user and current_user['is_admin'] == 1 %}
+              <div class="side-divider"></div>
+              <h3>Administración</h3>
+              <nav>
+                <a href="/admin">Validar usuarios</a>
+                <a href="/admin/backup">Backup base de datos</a>
+              </nav>
+            {% endif %}
+            <div class="side-divider"></div>
+            <nav>
+              <a href="/auth/forgot">Recuperar contraseña</a>
+            </nav>
+          </aside>
+        <div class="app-main">
+

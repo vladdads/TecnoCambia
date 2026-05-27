@@ -1,0 +1,50 @@
+{% set title = "Vistos | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <h2 style="margin:0;">Vistos recientemente</h2>
+      <div class="hint">Últimos productos que visitaste.</div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a class="pill" href="/me/favorites">Favoritos</a>
+      <a class="pill" href="/products">Explorar</a>
+    </div>
+  </div>
+
+  {% if not products or products|length == 0 %}
+    <div style="margin-top:14px;" class="hint">Aún no tienes historial.</div>
+  {% else %}
+    <div class="cards" style="margin-top:14px;">
+      {% for p in products %}
+        <a class="card" href="/products/{{ p['id'] }}">
+          <div class="thumb">
+            {% if p['cover_image'] %}
+              <img src="/uploads/{{ p['cover_image'] }}" alt="{{ p['title'] }}" />
+            {% else %}
+              <div class="placeholder">TC</div>
+            {% endif %}
+          </div>
+          <div class="body">
+            <div class="badge {{ p['listing_type'] }}">
+              {{ 'Venta' if p['listing_type']=='sale' else ('Intercambio' if p['listing_type']=='exchange' else 'Donación') }}
+            </div>
+            <h4>{{ p['title'] }}</h4>
+            <div class="meta">
+              <span><strong>{{ p['category'] }}</strong></span>
+              <span>·</span>
+              <span>{{ p['location'] }}</span>
+            </div>
+            <div class="hint" style="margin-top:8px;">Visto: {{ (p['last_viewed_at'] or '')[:16] }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+
+{% include "partials/footer.html" %}
+

@@ -1,0 +1,119 @@
+{% set title = "Admin | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <h2 style="margin:0;">Panel admin</h2>
+      <div class="hint">Métricas rápidas, reportes y mantenimiento.</div>
+    </div>
+    <a class="btn-primary" href="/admin/backup">Descargar backup DB</a>
+  </div>
+
+  <div class="admin-stats">
+    <div class="admin-stat-card">
+      <div class="hint">Usuarios</div>
+      <div class="admin-stat-num">{{ counts['users'] }}</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="hint">Publicaciones</div>
+      <div class="admin-stat-num">{{ counts['products'] }}</div>
+    </div>
+    <div class="admin-stat-card admin-stat-card--alert">
+      <div class="hint">Reportes abiertos</div>
+      <div class="admin-stat-num">{{ counts['reports_open'] }}</div>
+    </div>
+  </div>
+
+  <h3 style="margin:18px 0 10px; font-size:14px; color:var(--tc-navy); letter-spacing:.4px; text-transform:uppercase;">Verificación de identidad (pendiente)</h3>
+  {% if not pendingIdentity or pendingIdentity|length == 0 %}
+    <div class="hint">Sin solicitudes pendientes.</div>
+  {% else %}
+    <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>CURP</th>
+          <th>INE</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in pendingIdentity %}
+          <tr>
+            <td>
+              <div style="font-weight:1000;">{{ u['name'] }}</div>
+              <div class="hint">{{ u['email'] }}</div>
+            </td>
+            <td style="font-family:ui-monospace, monospace;">{{ u['curp'] }}</td>
+            <td>
+              <a class="btn" href="/uploads/{{ u['ine_image_filename'] }}" target="_blank" rel="noopener">Ver foto INE</a>
+            </td>
+            <td>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <form action="/admin/identity/{{ u['id'] }}/approve" method="post" style="display:inline">
+                  <button class="btn-primary" type="submit">Aprobar</button>
+                </form>
+                <form action="/admin/identity/{{ u['id'] }}/reject" method="post" style="display:inline">
+                  <button class="btn secondary" type="submit">Rechazar</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% endif %}
+
+  <h3 style="margin:18px 0 10px; font-size:14px; color:var(--tc-navy); letter-spacing:.4px; text-transform:uppercase;">Reportes recientes</h3>
+  {% if not reports or reports|length == 0 %}
+    <div class="hint">Sin reportes.</div>
+  {% else %}
+    <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Reportó</th>
+          <th>Motivo</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+          <tr>
+            <td class="hint">{{ (r['created_at'] or '')[:16] }}</td>
+            <td>{{ r['reporter_name'] }}</td>
+            <td>
+              <div style="font-weight:1000;">{{ r['reason'] }}</div>
+              {% if r['details'] %}<div class="hint">{{ r['details'] }}</div>{% endif %}
+              <div class="hint">
+                {% if r['product_id'] %}<a href="/products/{{ r['product_id'] }}" style="text-decoration:underline;">Ver producto</a>{% endif %}
+              </div>
+            </td>
+            <td><span class="badge">{{ r['status'] }}</span></td>
+            <td>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <form action="/admin/reports/{{ r['id'] }}/reviewed" method="post" style="display:inline">
+                  <button class="btn" type="submit">Revisado</button>
+                </form>
+                <form action="/admin/reports/{{ r['id'] }}/closed" method="post" style="display:inline">
+                  <button class="btn secondary" type="submit">Cerrar</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% endif %}
+</div>
+
+{% include "partials/footer.html" %}
+

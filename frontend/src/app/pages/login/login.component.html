@@ -1,0 +1,39 @@
+<div class="container">
+  <div class="panel">
+    <h2>Iniciar sesión</h2>
+    <p class="hint">Usa tu cuenta Tecnocambia. La sesión se guarda de forma segura en el navegador.</p>
+    @if (error) {
+      <div class="error">{{ error }}</div>
+    }
+    <form (ngSubmit)="submit()">
+      <div class="field">
+        <label for="login-email">Email</label>
+        <input
+          id="login-email"
+          type="email"
+          [(ngModel)]="email"
+          name="email"
+          required
+          autocomplete="email"
+        />
+      </div>
+      <div class="field">
+        <label for="login-pass">Contraseña</label>
+        <input
+          id="login-pass"
+          type="password"
+          [(ngModel)]="password"
+          name="password"
+          required
+          autocomplete="current-password"
+        />
+      </div>
+      <button type="submit" class="btn-primary" style="width: 100%; margin-top: 6px">Entrar</button>
+    </form>
+    <p class="form-foot">
+      <a routerLink="/register">Crear cuenta</a>
+      ·
+      <a [href]="api.externalUrl('/auth/forgot')">Olvidé mi contraseña</a>
+    </p>
+  </div>
+</div>

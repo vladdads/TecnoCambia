@@ -1,0 +1,115 @@
+@if (error) {
+  <div class="container">
+    <div class="panel">
+      <div class="error">{{ error }}</div>
+      <p class="form-foot" style="margin-top: 12px">
+        <a routerLink="/products">← Volver al catálogo</a>
+      </p>
+    </div>
+  </div>
+} @else if (product) {
+  <div class="container">
+    <p style="margin: 0 0 12px">
+      <a routerLink="/products" class="hint" style="font-weight: 800; text-decoration: underline">← Catálogo</a>
+    </p>
+    <div class="product-layout">
+      <section class="gallery">
+        <div class="main">
+          @if (product.images.length) {
+            <img [src]="product.images[0].url" [alt]="product.title" />
+          } @else {
+            <div
+              style="
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--tc-muted);
+                font-weight: 1000;
+              "
+            >
+              Sin imágenes
+            </div>
+          }
+        </div>
+        @if (product.images && product.images.length > 1) {
+          <div class="thumbs" aria-label="Galería">
+            @for (im of product.images.slice(1); track im.id) {
+              <a [href]="im.url" target="_blank" rel="noopener">
+                <img [src]="im.url" alt="Miniatura" />
+              </a>
+            }
+          </div>
+        }
+      </section>
+
+      <aside class="product-box">
+        <div class="badge {{ product.listing_type }}">{{ typeLabel(product.listing_type) }}</div>
+        <h1>{{ product.title }}</h1>
+
+        @if (product.listing_type === 'sale') {
+          <div class="big-price">{{ formatPrice(product.price_cents) }}</div>
+        } @else if (product.listing_type === 'donation') {
+          <div class="big-price">Gratis</div>
+        } @else {
+          <div class="big-price">Intercambio</div>
+        }
+
+        <div class="kv">
+          <div>
+            <div class="k">Categoría</div>
+            <div class="v">{{ product.category }}</div>
+          </div>
+          <div>
+            <div class="k">Condición</div>
+            <div class="v">{{ formatCondition(product.item_condition) }}</div>
+          </div>
+          <div>
+            <div class="k">Marca / Modelo</div>
+            <div class="v">
+              {{ product.brand || '—' }}
+              @if (product.model) {
+                <span> · {{ product.model }}</span>
+              }
+            </div>
+          </div>
+          <div>
+            <div class="k">Año / Accesorios</div>
+            <div class="v">
+              {{ product.year || '—' }}
+              @if (product.accessories) {
+                <span> · {{ product.accessories }}</span>
+              }
+            </div>
+          </div>
+          <div>
+            <div class="k">Ubicación</div>
+            <div class="v">{{ product.location }}</div>
+          </div>
+          <div>
+            <div class="k">Publicado</div>
+            <div class="v">{{ (product.created_at || '').toString().slice(0, 10) || '—' }}</div>
+          </div>
+        </div>
+
+        <div style="white-space: pre-wrap; line-height: 1.45">{{ product.description }}</div>
+
+        <div class="cta">
+          <div class="contact">
+            <div style="font-weight: 1000">Contacto</div>
+            <div class="hint">Vendedor: <strong>{{ product.seller_name }}</strong></div>
+            @if (product.seller_email) {
+              <div class="hint">
+                Email:
+                <a [href]="'mailto:' + product.seller_email" style="text-decoration: underline">{{
+                  product.seller_email
+                }}</a>
+              </div>
+            }
+          </div>
+          <a class="btn-primary" [href]="'/messages/new/' + product.id">Chatear</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+}

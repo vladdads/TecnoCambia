@@ -1,0 +1,104 @@
+<header class="topbar">
+  <div class="container">
+    <div class="topbar-inner">
+      <a routerLink="/products" class="brand" aria-label="Tecnocambia">
+        <img src="/logo.jpeg" alt="Tecnocambia logo" />
+        <div>
+          <div class="title">TECNOCAMBIA</div>
+          <div class="subtitle">Recicla · Dona · Intercambia</div>
+        </div>
+      </a>
+
+      <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" [attr.aria-expanded]="showSidebar()" aria-label="Mostrar u ocultar menú">☰</button>
+
+      <form class="search" action="/app/products" method="get" role="search">
+        <input name="q" placeholder="Buscar laptops, celulares, consolas..." />
+        <button type="submit">Buscar</button>
+      </form>
+
+      <nav class="nav-actions" aria-label="Cuenta">
+        <a class="btn-primary" routerLink="/sell">Publicar</a>
+
+        @if (api.user(); as u) {
+          <span class="verify-chip" [class.ok]="u.verificationStatus === 'verified'" [class.warn]="u.verificationStatus === 'pending'" [class.bad]="u.verificationStatus === 'rejected'">
+            @switch (u.verificationStatus) {
+              @case ('verified') { Verificado }
+              @case ('pending') { En revisión }
+              @default { Identidad rechazada }
+            }
+          </span>
+          <button type="button" class="pill" (click)="logout()">Salir</button>
+        } @else {
+          <a class="pill" routerLink="/login">Iniciar sesión</a>
+          <a class="pill" routerLink="/register">Registrarse</a>
+        }
+      </nav>
+    </div>
+
+    <div class="subnav">
+      <div class="chips">
+        <a class="chip" routerLink="/products" [queryParams]="chipTodoQuery()" [class.active]="chipTodoActive()">Todo</a>
+        <a class="chip" routerLink="/products" [queryParams]="chipTypeQuery('sale')" [class.active]="chipTypeActive('sale')">Venta</a>
+        <a class="chip" routerLink="/products" [queryParams]="chipTypeQuery('exchange')" [class.active]="chipTypeActive('exchange')">Intercambio</a>
+        <a class="chip" routerLink="/products" [queryParams]="chipTypeQuery('donation')" [class.active]="chipTypeActive('donation')">Donación</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="app-body container" [class.sidebar-collapsed]="!showSidebar()">
+  @if (api.user()) {
+    <aside class="app-sidebar" aria-label="Menú principal">
+      <h3>Explorar</h3>
+      <nav>
+        <a routerLink="/products" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Catálogo</a>
+        <a routerLink="/sell" routerLinkActive="active">Publicar anuncio</a>
+      </nav>
+      <div class="side-divider"></div>
+      <h3>Mi cuenta</h3>
+      <nav>
+        <a routerLink="/account/profile" routerLinkActive="active">Mi perfil</a>
+        <a routerLink="/account/listings" routerLinkActive="active">Mis publicaciones</a>
+        <a [href]="api.externalUrl('/messages')" class="side-link-external">Chats</a>
+        <a [href]="api.externalUrl('/me/favorites')">Favoritos</a>
+        <a [href]="api.externalUrl('/me/purchases')">Mis ofertas</a>
+      </nav>
+      @if (api.user()?.isAdmin) {
+        <div class="side-divider"></div>
+        <h3>Administración</h3>
+        <nav>
+          <a routerLink="/admin" routerLinkActive="active">Validar usuarios</a>
+          <a [href]="api.externalUrl('/admin/backup')">Backup base de datos</a>
+        </nav>
+      }
+      <div class="side-divider"></div>
+      <nav>
+        <a [href]="api.externalUrl('/auth/forgot')">Recuperar contraseña</a>
+      </nav>
+    </aside>
+  }
+  <div class="app-main">
+    <main class="page" style="padding-top: 16px">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div style="display: flex; gap: 14px; flex-wrap: wrap; justify-content: space-between; align-items: center">
+      <div>
+        <div style="font-weight: 1000; letter-spacing: 0.5px">Tecnocambia</div>
+        <div class="small">Marketplace para vender, intercambiar o donar equipo electrónico.</div>
+      </div>
+      <div class="small">
+        @if (api.user(); as u) {
+          Sesión: <strong>{{ u.name }}</strong>
+        } @else {
+          <a routerLink="/login" style="text-decoration: underline">Iniciar sesión</a> ·
+          <a routerLink="/register" style="text-decoration: underline">Registrarse</a>
+        }
+      </div>
+    </div>
+  </div>
+</footer>

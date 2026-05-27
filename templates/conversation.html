@@ -1,0 +1,82 @@
+{% set title = "Chat | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div style="min-width:0;">
+      <div class="hint">Chat sobre</div>
+      <div style="font-weight:1000; font-size:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+        <a href="/products/{{ conv['product_id'] }}" style="text-decoration:underline;">{{ conv['product_title'] }}</a>
+      </div>
+      <div class="hint" style="margin-top:4px;">
+        {% if current_user and current_user['id'] == conv['seller_id'] %}
+          Comprador: <strong>{{ conv['buyer_name'] }}</strong>
+        {% else %}
+          Vendedor: <strong>{{ conv['seller_name'] }}</strong>
+        {% endif %}
+      </div>
+    </div>
+    <a class="pill" href="/messages">Volver a chats</a>
+  </div>
+
+  <div style="margin-top:14px; border:1px solid var(--tc-border); border-radius:16px; overflow:hidden;">
+    <div style="max-height:420px; overflow:auto; padding:12px; background:linear-gradient(180deg, rgba(232,244,252,.95), rgba(255,255,255,1));">
+      {% if not messages or messages|length == 0 %}
+        <div class="hint">Escribe el primer mensaje.</div>
+      {% else %}
+        {% for m in messages %}
+          {% set mine = (current_user and current_user['id'] == m['sender_id']) %}
+          <div style="display:flex; justify-content:{{ 'flex-end' if mine else 'flex-start' }}; margin:10px 0;">
+            <div style="
+              max-width:78%;
+              padding:10px 12px;
+              border-radius:16px;
+              border:1px solid var(--tc-border);
+              background:{{ 'rgba(37,99,235,.10)' if mine else '#fff' }};
+            ">
+              <div class="hint" style="margin-bottom:6px;">
+                <strong>{{ 'Tú' if mine else m['sender_name'] }}</strong>
+              </div>
+              <div style="white-space:pre-wrap; line-height:1.35;">{{ m['body'] }}</div>
+              {% set imgs = (imagesByMsg.get(m['id']) if imagesByMsg else None) %}
+              {% if imgs %}
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+                  {% for fn in imgs %}
+                    <a href="/uploads/{{ fn }}" target="_blank" style="width:120px; height:84px; border-radius:14px; overflow:hidden; border:1px solid var(--tc-border); background:rgba(37,99,235,.06);">
+                      <img src="/uploads/{{ fn }}" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                    </a>
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <div class="hint" style="margin-top:6px; text-align:right;">{{ (m['created_at'] or '')[:16] }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+    <form action="/messages/{{ conv['id'] }}" method="post" enctype="multipart/form-data" style="display:flex; gap:10px; padding:10px; border-top:1px solid rgba(26,58,92,.12); background:#fff; flex-wrap:wrap;">
+      <div style="flex:1; min-width:0; max-width:100%;">
+        <input
+          name="body"
+          placeholder="Escribe un mensaje..."
+          required
+          style="width:100%; border-radius:14px; border:1px solid var(--tc-border); padding:10px 12px; outline:none;"
+        />
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+          <button class="btn secondary" type="button" onclick="document.querySelector('[name=body]').value='¿Sigue disponible?';document.querySelector('[name=body]').focus();">¿Disponible?</button>
+          <button class="btn secondary" type="button" onclick="document.querySelector('[name=body]').value='¿En qué zona entregas?';document.querySelector('[name=body]').focus();">Entrega</button>
+          <button class="btn secondary" type="button" onclick="document.querySelector('[name=body]').value='¿Aceptas oferta?';document.querySelector('[name=body]').focus();">Oferta</button>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input name="images" type="file" accept="image/*" multiple style="max-width:100%; min-width:0; flex:1 1 160px;" />
+        <button class="btn-primary" type="submit">Enviar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% include "partials/footer.html" %}
+

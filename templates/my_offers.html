@@ -1,0 +1,77 @@
+{% set title = "Ofertas recibidas | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <h2 style="margin:0;">Ofertas recibidas</h2>
+      <div class="hint">Compras y ofertas hechas por otros usuarios a tus publicaciones.</div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a class="pill" href="/me/listings">Mis publicaciones</a>
+      <a class="pill" href="/messages">Chats</a>
+    </div>
+  </div>
+
+  {% if not offers or offers|length == 0 %}
+    <div style="margin-top:14px;" class="hint">Aún no recibes ofertas.</div>
+  {% else %}
+    <div class="table-wrap" style="margin-top:14px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Comprador</th>
+          <th>Tipo</th>
+          <th>Monto</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in offers %}
+          <tr>
+            <td>
+              <div style="font-weight:1000;"><a href="/products/{{ o['product_id'] }}" style="text-decoration:underline">{{ o['product_title'] }}</a></div>
+              <div class="hint">{{ o['location'] }}</div>
+            </td>
+            <td>{{ o['buyer_name'] }}</td>
+            <td><span class="badge">{{ 'Compra' if o['offer_type']=='buy' else 'Oferta' }}</span></td>
+            <td>
+              {% if o['amount_cents'] is not none %}
+                {{ money_from_cents(o['amount_cents']) }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td><span class="badge">{{ o['status'] }}</span></td>
+            <td>
+              {% if o['status'] == 'pending' %}
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <form action="/me/offers/{{ o['id'] }}/accept" method="post" style="display:inline">
+                    <button class="btn" type="submit">Aceptar</button>
+                  </form>
+                  <form action="/me/offers/{{ o['id'] }}/reject" method="post" style="display:inline">
+                    <button class="btn secondary" type="submit">Rechazar</button>
+                  </form>
+                  <form action="/me/offers/{{ o['id'] }}/counter" method="post" style="display:inline; display:flex; gap:8px; align-items:center;">
+                    <input name="amount" placeholder="Contraoferta (MXN)" inputmode="decimal" style="width:160px; border-radius:12px; border:1px solid var(--tc-border); padding:10px 10px; outline:none;" />
+                    <button class="btn secondary" type="submit">Contraofertar</button>
+                  </form>
+                </div>
+              {% else %}
+                <span class="hint">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% endif %}
+</div>
+
+{% include "partials/footer.html" %}
+

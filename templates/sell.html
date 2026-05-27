@@ -1,0 +1,99 @@
+{% set title = "Publicar | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <h2>Publicar producto</h2>
+  <div class="hint">Crea una publicación para vender, intercambiar o donar.</div>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form action="/sell" method="post" enctype="multipart/form-data" style="margin-top:12px;">
+    <div class="field">
+      <label>Título</label>
+      <input name="title" required value="{{ form.get('title','') if form else '' }}" placeholder="Ej. MacBook Air 2018 8GB" />
+    </div>
+
+    <div class="form-grid-2">
+      <div class="field">
+        <label>Marca</label>
+        <input name="brand" value="{{ form.get('brand','') if form else '' }}" placeholder="Ej. Apple, Samsung, Lenovo..." />
+      </div>
+      <div class="field">
+        <label>Modelo</label>
+        <input name="model" value="{{ form.get('model','') if form else '' }}" placeholder="Ej. iPhone 11, ThinkPad T480..." />
+      </div>
+    </div>
+
+    <div class="form-grid-2">
+      <div class="field">
+        <label>Año (opcional)</label>
+        <input name="year" inputmode="numeric" value="{{ form.get('year','') if form else '' }}" placeholder="Ej. 2021" />
+      </div>
+      <div class="field">
+        <label>Accesorios (opcional)</label>
+        <input name="accessories" value="{{ form.get('accessories','') if form else '' }}" placeholder="Ej. Cargador, funda, caja..." />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Tipo de publicación</label>
+      <select name="listing_type" required data-listing-type>
+        <option value="sale" {{ 'selected' if (form and form.get('listing_type')=='sale') else '' }}>Venta</option>
+        <option value="exchange" {{ 'selected' if (form and form.get('listing_type')=='exchange') else '' }}>Intercambio</option>
+        <option value="donation" {{ 'selected' if (form and form.get('listing_type')=='donation') else '' }}>Donación</option>
+      </select>
+    </div>
+
+    <div class="field" data-price-wrap>
+      <label>Precio (MXN)</label>
+      <input name="price" inputmode="decimal" data-price-input value="{{ form.get('price','') if form else '' }}" placeholder="Ej. 2500" />
+      <div class="hint" style="margin-top:6px;">Solo aplica para venta.</div>
+    </div>
+
+    <div class="field">
+      <label>Categoría</label>
+      <input name="category" list="tc-categories" required value="{{ form.get('category','') if form else '' }}" placeholder="Ej. Celulares, Computadoras, Accesorios..." />
+      <datalist id="tc-categories">
+        {% for c in preset_categories %}
+          <option value="{{ c }}"></option>
+        {% endfor %}
+      </datalist>
+    </div>
+
+    <div class="field">
+      <label>Condición</label>
+      <select name="item_condition" required>
+        <option value="new" {{ 'selected' if (form and form.get('item_condition')=='new') else '' }}>Nuevo</option>
+        <option value="like_new" {{ 'selected' if (form and form.get('item_condition')=='like_new') else '' }}>Como nuevo</option>
+        <option value="good" {{ 'selected' if (form and form.get('item_condition')=='good') else '' }}>Bueno</option>
+        <option value="fair" {{ 'selected' if (form and form.get('item_condition')=='fair') else '' }}>Regular</option>
+        <option value="for_parts" {{ 'selected' if (form and form.get('item_condition')=='for_parts') else '' }}>Para piezas</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Ubicación</label>
+      <input name="location" required value="{{ form.get('location','') if form else '' }}" placeholder="Ej. CDMX, Guadalajara..." />
+    </div>
+
+    <div class="field">
+      <label>Descripción</label>
+      <textarea name="description" required placeholder="Describe estado, accesorios, detalles, qué buscas (si es intercambio), etc.">{{ form.get('description','') if form else '' }}</textarea>
+    </div>
+
+    <div class="field">
+      <label>Imágenes (hasta 6)</label>
+      <input name="images" type="file" accept="image/*" multiple />
+      <div class="hint" style="margin-top:6px;">Tamaño máximo 5MB por imagen.</div>
+    </div>
+
+    <button class="btn-primary" type="submit" style="width:100%; margin-top:6px;">Publicar</button>
+  </form>
+</div>
+
+{% include "partials/footer.html" %}
+

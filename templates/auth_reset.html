@@ -1,0 +1,25 @@
+{% set title = "Nueva contraseña | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <h2>Nueva contraseña</h2>
+  <div class="hint">Define una contraseña nueva.</div>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form action="/auth/reset/{{ token }}" method="post" style="margin-top:12px;">
+    <div class="field">
+      <label>Contraseña nueva</label>
+      <input name="password" type="password" minlength="6" autocomplete="new-password" required />
+      <div class="hint" style="margin-top:6px;">Mínimo 6 caracteres.</div>
+    </div>
+    <button class="btn-primary" type="submit" style="width:100%; margin-top:6px;">Guardar</button>
+  </form>
+</div>
+
+{% include "partials/footer.html" %}
+

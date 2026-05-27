@@ -1,0 +1,41 @@
+# Blueprint Render: https://render.com/docs/blueprint-spec
+# Conecta tu repo de GitHub y usa "New > Blueprint".
+services:
+  - type: web
+    name: tecnocambia
+    runtime: python
+    plan: free
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    healthCheckPath: /app/products
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: DATA_DIR
+        value: /var/data
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: MAIL_SERVER
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USE_TLS
+        value: "true"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_DEFAULT_SENDER
+        sync: false
+    disk:
+      name: tecnocambia-data
+      mountPath: /var/data
+      sizeGB: 1

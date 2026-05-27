@@ -1,0 +1,58 @@
+{% set title = "Mis ofertas | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <h2 style="margin:0;">Mis ofertas</h2>
+      <div class="hint">Historial de compras/ofertas que hiciste a otros usuarios.</div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a class="pill" href="/messages">Chats</a>
+      <a class="pill" href="/products">Seguir explorando</a>
+    </div>
+  </div>
+
+  {% if not offers or offers|length == 0 %}
+    <div style="margin-top:14px;" class="hint">Aún no has hecho ofertas.</div>
+  {% else %}
+    <div class="table-wrap" style="margin-top:14px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Vendedor</th>
+          <th>Tipo</th>
+          <th>Monto</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in offers %}
+          <tr>
+            <td>
+              <div style="font-weight:1000;"><a href="/products/{{ o['product_id'] }}" style="text-decoration:underline">{{ o['product_title'] }}</a></div>
+              <div class="hint">{{ o['location'] }}</div>
+            </td>
+            <td>{{ o['seller_name'] }}</td>
+            <td><span class="badge">{{ 'Compra' if o['offer_type']=='buy' else 'Oferta' }}</span></td>
+            <td>
+              {% if o['amount_cents'] is not none %}
+                {{ money_from_cents(o['amount_cents']) }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td><span class="badge">{{ o['status'] }}</span></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% endif %}
+</div>
+
+{% include "partials/footer.html" %}
+

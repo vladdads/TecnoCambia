@@ -1,0 +1,58 @@
+<div class="container">
+  <div class="panel">
+    <h2>Crear cuenta</h2>
+    <p class="hint">
+      Escribe tu <strong>CURP</strong> (18 caracteres) y sube una foto clara del <strong>frente de tu INE</strong>. Un
+      administrador revisará la imagen antes de habilitar publicaciones.
+    </p>
+    @if (error) {
+      <div class="error">{{ error }}</div>
+    }
+    <form (ngSubmit)="submit()">
+      <div class="field">
+        <label for="reg-name">Nombre</label>
+        <input id="reg-name" [(ngModel)]="name" name="name" required autocomplete="name" />
+      </div>
+      <div class="field">
+        <label for="reg-email">Email</label>
+        <input id="reg-email" type="email" [(ngModel)]="email" name="email" required autocomplete="email" />
+      </div>
+      <div class="field">
+        <label for="reg-pass">Contraseña</label>
+        <input
+          id="reg-pass"
+          type="password"
+          [(ngModel)]="password"
+          name="password"
+          required
+          minlength="6"
+          autocomplete="new-password"
+        />
+      </div>
+      <div class="field">
+        <label for="reg-curp">CURP (18 caracteres)</label>
+        <input
+          id="reg-curp"
+          [(ngModel)]="curp"
+          name="curp"
+          maxlength="18"
+          minlength="18"
+          required
+          style="text-transform: uppercase"
+        />
+      </div>
+      <div class="field">
+        <label for="reg-ine">Foto INE (frente)</label>
+        <input
+          id="reg-ine"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          (change)="onIne($event)"
+          required
+        />
+      </div>
+      <button type="submit" class="btn-primary" style="width: 100%; margin-top: 6px">Registrarme</button>
+    </form>
+    <p class="form-foot"><a routerLink="/login">Ya tengo cuenta</a></p>
+  </div>
+</div>

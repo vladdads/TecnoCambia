@@ -1,0 +1,72 @@
+<div class="container">
+  <div class="panel wide">
+    <h2>Mi perfil</h2>
+    <p class="hint">Los datos de registro (email, CURP, INE) se guardan en la base de datos. Aquí puedes actualizar tu nombre.</p>
+
+    @if (loading) {
+      <p class="hint">Cargando…</p>
+    } @else if (profile) {
+      @if (error) {
+        <div class="error">{{ error }}</div>
+      }
+      @if (success) {
+        <div class="flash warn" style="border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.1)">
+          {{ success }}
+        </div>
+      }
+
+      <div class="kv" style="margin-bottom: 16px">
+        <div>
+          <div class="k">Email</div>
+          <div class="v">{{ profile.email }}</div>
+        </div>
+        <div>
+          <div class="k">Estado de identidad</div>
+          <div class="v">{{ statusLabel(profile.verificationStatus) }}</div>
+        </div>
+        <div>
+          <div class="k">CURP</div>
+          <div class="v" style="font-family: ui-monospace, monospace">
+            <input [(ngModel)]="profile.curp" name="curp" placeholder="CURP (18 caracteres)" style="font-family:ui-monospace, monospace; width:100%" />
+            <div style="margin-top:8px">
+              <button type="button" class="btn" (click)="updateCurp()">Guardar CURP</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="k">Registro</div>
+          <div class="v">{{ (profile.created_at || '').slice(0, 10) }}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        @if (profile.ineImageUrl) {
+          <a [href]="profile.ineImageUrl" target="_blank" rel="noopener" class="btn">Ver foto INE enviada</a>
+        }
+        @if (profile.curpDocumentUrl) {
+          <a [href]="profile.curpDocumentUrl" target="_blank" rel="noopener" class="btn" style="margin-left:8px">Ver documento CURP</a>
+        }
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px">
+        <label class="btn" style="display:inline-flex; align-items:center; gap:8px">
+          Subir foto INE
+          <input type="file" accept="image/*" (change)="uploadIne($event)" style="display:none" />
+        </label>
+
+        <label class="btn" style="display:inline-flex; align-items:center; gap:8px">
+          Subir documento CURP
+          <input type="file" accept="image/*,.pdf,application/pdf" (change)="uploadCurpDoc($event)" style="display:none" />
+        </label>
+      </div>
+
+      <form (ngSubmit)="save()">
+        <div class="field">
+          <label for="prof-name">Nombre</label>
+          <input id="prof-name" [(ngModel)]="name" name="name" required minlength="2" />
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 6px">Guardar cambios</button>
+      </form>
+    }
+  </div>
+</div>

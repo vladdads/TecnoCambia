@@ -1,0 +1,52 @@
+.verify-chip {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-toggle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:40px;
+  height:40px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(255,255,255,0.06);
+  color:#fff;
+  font-size:18px;
+  cursor:pointer;
+}
+.sidebar-toggle:hover{ background:rgba(255,255,255,0.12) }
+
+.app-body.sidebar-collapsed .app-sidebar{ display:none }
+.app-body.sidebar-collapsed .app-main{ flex:1 1 auto }
+.app-main{ transition: margin .18s ease, width .18s ease }
+
+.verify-chip.ok {
+  background: rgba(132, 204, 22, 0.95);
+  color: #0f2744;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.verify-chip.warn {
+  background: rgba(251, 191, 36, 0.95);
+  color: #0f2744;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.verify-chip.bad {
+  background: #f87171;
+  color: #450a0a;
+  border-color: rgba(255, 255, 255, 0.35);
+}

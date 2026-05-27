@@ -1,0 +1,116 @@
+{% set title = product['title'] ~ " | Tecnocambia" %}
+{% include "partials/header.html" with context %}
+
+<div class="product-layout">
+  <section class="gallery">
+    <div class="main">
+      {% set mainSrc = ('/uploads/' ~ images[0]['filename']) if images and (images|length) > 0 else None %}
+      {% if mainSrc %}
+        <img data-gallery-main src="{{ mainSrc }}" alt="{{ product['title'] }}" />
+      {% else %}
+        <div style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--tc-muted); font-weight:1000;">
+          Sin imágenes
+        </div>
+      {% endif %}
+    </div>
+    {% if images and (images|length) > 1 %}
+      <div class="thumbs" aria-label="Galería">
+        {% for img in images %}
+          <a data-gallery-thumb href="/uploads/{{ img['filename'] }}">
+            <img src="/uploads/{{ img['filename'] }}" alt="Imagen" />
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <aside class="product-box">
+    <div class="badge {{ product['listing_type'] }}">
+      {{ 'Venta' if product['listing_type']=='sale' else ('Intercambio' if product['listing_type']=='exchange' else 'Donación') }}
+    </div>
+    <h1>{{ product['title'] }}</h1>
+
+    {% if product['listing_type'] == 'sale' %}
+      <div class="big-price">{{ money_from_cents(product['price_cents']) }}</div>
+    {% elif product['listing_type'] == 'donation' %}
+      <div class="big-price">Gratis</div>
+    {% else %}
+      <div class="big-price">Intercambio</div>
+    {% endif %}
+
+    <div class="kv">
+      <div>
+        <div class="k">Categoría</div>
+        <div class="v">{{ product['category'] }}</div>
+      </div>
+      <div>
+        <div class="k">Condición</div>
+        <div class="v">{{ product['item_condition']|replace('_',' ') }}</div>
+      </div>
+      <div>
+        <div class="k">Marca / Modelo</div>
+        <div class="v">
+          {{ (product['brand'] or '—') }}{% if product['model'] %} · {{ product['model'] }}{% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="k">Año / Accesorios</div>
+        <div class="v">
+          {{ product['year'] or '—' }}{% if product['accessories'] %} · {{ product['accessories'] }}{% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="k">Ubicación</div>
+        <div class="v">{{ product['location'] }}</div>
+      </div>
+      <div>
+        <div class="k">Publicado</div>
+        <div class="v">{{ (product['created_at'] or '')[:10] }}</div>
+      </div>
+    </div>
+
+    <div style="white-space:pre-wrap; line-height:1.45;">{{ product['description'] }}</div>
+
+    <div class="cta">
+      <div class="contact">
+        <div style="font-weight:1000;">Contacto</div>
+        <div class="hint">Vendedor: <strong>{{ product['seller_name'] }}</strong></div>
+        <div class="hint">Email: <a href="mailto:{{ product['seller_email'] }}" style="text-decoration:underline">{{ product['seller_email'] }}</a></div>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        {% if current_user and current_user['id'] != product['user_id'] %}
+          <form action="/products/{{ product['id'] }}/favorite" method="post" style="display:inline">
+            <button class="btn secondary" type="submit">Guardar</button>
+          </form>
+        {% endif %}
+        <a class="btn-primary" href="/messages/new/{{ product['id'] }}">Chatear</a>
+
+        {% if product['listing_type'] == 'sale' and product['status'] == 'active' and (not current_user or current_user['id'] != product['user_id']) %}
+          <form action="/products/{{ product['id'] }}/buy" method="post" style="display:inline">
+            <button class="btn" type="submit">Comprar</button>
+          </form>
+
+          <form action="/products/{{ product['id'] }}/offer" method="post" style="display:inline; display:flex; gap:8px; align-items:center;">
+            <input name="amount" placeholder="Oferta (MXN)" inputmode="decimal" style="width:140px; border-radius:12px; border:1px solid var(--tc-border); padding:10px 10px; outline:none;" />
+            <button class="btn secondary" type="submit">Hacer oferta</button>
+          </form>
+        {% endif %}
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
+        {% if current_user and current_user['id'] != product['user_id'] %}
+          <a class="pill" href="/report?product_id={{ product['id'] }}&user_id={{ product['user_id'] }}">Reportar</a>
+          <form action="/block/{{ product['user_id'] }}" method="post" style="display:inline" onsubmit="return confirm('¿Bloquear a este usuario?');">
+            <button class="pill" type="submit">Bloquear</button>
+          </form>
+        {% endif %}
+      </div>
+
+      <a class="btn-primary" href="/products">Seguir explorando</a>
+    </div>
+  </aside>
+</div>
+
+{% include "partials/footer.html" %}
+

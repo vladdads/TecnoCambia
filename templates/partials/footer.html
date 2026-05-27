@@ -1,0 +1,29 @@
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:1000; letter-spacing:.5px;">Tecnocambia</div>
+            <div class="small">Marketplace para vender, intercambiar o donar equipo electrónico.</div>
+          </div>
+          <div class="small">
+            {% if current_user %}
+              Sesión iniciada como <strong>{{ current_user["name"] }}</strong> · <a href="/me/listings" style="text-decoration:underline">Mis publicaciones</a>
+              {% if current_user["is_admin"] == 1 %}
+                · <a href="/admin" style="text-decoration:underline">Admin</a>
+              {% endif %}
+            {% else %}
+              <a href="/auth/login" style="text-decoration:underline">Iniciar sesión</a> · <a href="/auth/register" style="text-decoration:underline">Registrarse</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+

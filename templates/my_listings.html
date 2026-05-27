@@ -1,0 +1,70 @@
+{% set title = "Mis publicaciones | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <div>
+      <h2 style="margin:0;">Mis publicaciones</h2>
+      <div class="hint">Edita, pausa o elimina tus productos.</div>
+    </div>
+    <a class="btn-primary" href="/app/sell">Nueva publicación</a>
+  </div>
+
+  {% if not products or products|length == 0 %}
+    <div style="margin-top:14px;" class="hint">Aún no tienes publicaciones.</div>
+  {% else %}
+    <div class="table-wrap" style="margin-top:14px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+          <tr>
+            <td>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <div style="width:64px; height:48px; flex-shrink:0; border-radius:12px; overflow:hidden; border:1px solid var(--tc-border); background:rgba(37,99,235,.06);">
+                  {% if p['cover_image'] %}
+                    <img src="/uploads/{{ p['cover_image'] }}" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                  {% endif %}
+                </div>
+                <div>
+                  <div style="font-weight:1000;"><a href="/products/{{ p['id'] }}" style="text-decoration:underline">{{ p['title'] }}</a></div>
+                  <div class="hint">{{ p['location'] }} · {{ p['category'] }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ p['listing_type'] }}">
+                {{ 'Venta' if p['listing_type']=='sale' else ('Intercambio' if p['listing_type']=='exchange' else 'Donación') }}
+              </span>
+            </td>
+            <td><span class="badge">{{ p['status'] }}</span></td>
+            <td>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a class="btn" href="/me/listings/{{ p['id'] }}/edit">Editar</a>
+                <form action="/me/listings/{{ p['id'] }}/complete" method="post" style="display:inline" onsubmit="return confirm('¿Marcar como finalizada?');">
+                  <button class="btn secondary" type="submit">Finalizar</button>
+                </form>
+                <form action="/me/listings/{{ p['id'] }}/delete" method="post" onsubmit="return confirm('¿Eliminar esta publicación?');" style="display:inline">
+                  <button class="btn secondary" type="submit">Eliminar</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% endif %}
+</div>
+
+{% include "partials/footer.html" %}
+

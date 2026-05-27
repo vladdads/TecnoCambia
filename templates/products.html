@@ -1,0 +1,200 @@
+{% include "partials/header.html" with context %}
+
+<section class="hero">
+  <div>
+    <h1>Encuentra tu próximo equipo (o dale nueva vida al tuyo)</h1>
+    <p>Publica en <strong>venta</strong>, <strong>intercambio</strong> o <strong>donación</strong>.</p>
+  </div>
+  <div class="hint">
+    {% if not current_user %}
+      Consejo: puedes navegar sin cuenta, pero para publicar necesitas iniciar sesión.
+    {% endif %}
+  </div>
+</section>
+
+<div class="grid">
+  <aside class="filters">
+    <h3>Filtros</h3>
+    <form action="/products" method="get">
+      <div class="field">
+        <label>Buscar</label>
+        <input name="q" value="{{ q or '' }}" placeholder="Ej. iPhone, laptop, monitor..." />
+      </div>
+
+      <div class="field">
+        <label>Tipo</label>
+        <select name="type">
+          <option value="" {{ 'selected' if not listingType else '' }}>Todos</option>
+          <option value="sale" {{ 'selected' if listingType=='sale' else '' }}>Venta</option>
+          <option value="exchange" {{ 'selected' if listingType=='exchange' else '' }}>Intercambio</option>
+          <option value="donation" {{ 'selected' if listingType=='donation' else '' }}>Donación</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Categoría</label>
+        <select name="category">
+          <option value="" {{ 'selected' if not category else '' }}>Todas</option>
+          {% for c in categories or [] %}
+            <option value="{{ c }}" {{ 'selected' if category==c else '' }}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Condición</label>
+        <select name="condition">
+          <option value="" {{ 'selected' if not itemCondition else '' }}>Cualquiera</option>
+          <option value="new" {{ 'selected' if itemCondition=='new' else '' }}>Nuevo</option>
+          <option value="like_new" {{ 'selected' if itemCondition=='like_new' else '' }}>Como nuevo</option>
+          <option value="good" {{ 'selected' if itemCondition=='good' else '' }}>Bueno</option>
+          <option value="fair" {{ 'selected' if itemCondition=='fair' else '' }}>Regular</option>
+          <option value="for_parts" {{ 'selected' if itemCondition=='for_parts' else '' }}>Para piezas</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Ubicación</label>
+        <input name="location" value="{{ location or '' }}" placeholder="Ej. CDMX, Guadalajara..." />
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div class="field">
+          <label>Precio mínimo (MXN)</label>
+          <input name="min_price" inputmode="decimal" value="{{ minPrice or '' }}" placeholder="Ej. 500" />
+        </div>
+        <div class="field">
+          <label>Precio máximo (MXN)</label>
+          <input name="max_price" inputmode="decimal" value="{{ maxPrice or '' }}" placeholder="Ej. 3000" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Solo con fotos</label>
+        <select name="photos">
+          <option value="" {{ 'selected' if not withPhotos else '' }}>No</option>
+          <option value="1" {{ 'selected' if withPhotos=='1' else '' }}>Sí</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Ordenar</label>
+        <select name="sort">
+          <option value="recent" {{ 'selected' if sort=='recent' else '' }}>Más recientes</option>
+          <option value="price_asc" {{ 'selected' if sort=='price_asc' else '' }}>Precio: menor a mayor</option>
+          <option value="price_desc" {{ 'selected' if sort=='price_desc' else '' }}>Precio: mayor a menor</option>
+        </select>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="submit">Aplicar</button>
+        <a class="btn secondary" href="/products">Limpiar</a>
+      </div>
+    </form>
+  </aside>
+
+  <section class="products">
+    <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+      <div class="hint">
+        {{ totalResults or 0 }} resultados
+        {% if totalPages and totalPages > 1 %}
+          · Página {{ page }} de {{ totalPages }}
+        {% endif %}
+      </div>
+      {% if current_user %}
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="pill" href="/me/favorites">Favoritos</a>
+            <a class="pill" href="/me/viewed">Vistos</a>
+            <a class="pill" href="/me/saved-searches">Búsquedas</a>
+          <a class="pill" href="/messages">Chats</a>
+          <a class="pill" href="/me/purchases">Mis ofertas</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="chips" style="margin-bottom:12px;">
+      {% set qp2 = [] %}
+      {% if q %}{% set _ = qp2.append("q=" ~ (q|urlencode)) %}{% endif %}
+      {% if listingType %}{% set _ = qp2.append("type=" ~ listingType) %}{% endif %}
+      {% if itemCondition %}{% set _ = qp2.append("condition=" ~ itemCondition) %}{% endif %}
+      {% if sort %}{% set _ = qp2.append("sort=" ~ sort) %}{% endif %}
+      {% set qs2 = qp2|join("&") %}
+
+      <a class="chip {{ 'active' if not category else '' }}" href="/products?{{ qs2 }}">Todas</a>
+      {% for c in preset_categories[:8] %}
+        <a class="chip {{ 'active' if category==c else '' }}" href="/products?{{ qs2 }}&category={{ c|urlencode }}">{{ c }}</a>
+      {% endfor %}
+    </div>
+
+    {% if not products or products|length == 0 %}
+      <div class="panel">
+        <h2>No encontramos resultados</h2>
+        <div class="hint">Prueba con otra búsqueda o publica tu primer producto.</div>
+        <div style="margin-top:12px;">
+          <a class="btn-primary" href="/sell">Publicar ahora</a>
+        </div>
+      </div>
+    {% else %}
+      <div class="cards">
+        {% for p in products %}
+          <a class="card" href="/products/{{ p['id'] }}">
+            <div class="thumb">
+              {% if p['cover_image'] %}
+                <img src="/uploads/{{ p['cover_image'] }}" alt="{{ p['title'] }}" />
+              {% else %}
+                <div class="placeholder">TC</div>
+              {% endif %}
+            </div>
+            <div class="body">
+              <div class="badge {{ p['listing_type'] }}">
+                {{ 'Venta' if p['listing_type']=='sale' else ('Intercambio' if p['listing_type']=='exchange' else 'Donación') }}
+              </div>
+              <h4>{{ p['title'] }}</h4>
+              <div class="meta">
+                <span><strong>{{ p['category'] }}</strong></span>
+                <span>·</span>
+                <span>{{ p['item_condition']|replace('_',' ') }}</span>
+                <span>·</span>
+                <span>{{ p['location'] }}</span>
+              </div>
+              {% if p['listing_type'] == 'sale' %}
+                <div class="price">{{ money_from_cents(p['price_cents']) }}</div>
+              {% elif p['listing_type'] == 'donation' %}
+                <div class="price">Gratis</div>
+              {% else %}
+                <div class="price">Intercambio</div>
+              {% endif %}
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+
+      {% if totalPages and totalPages > 1 %}
+        <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:16px;">
+          {% set base = "/products?" %}
+          {% set qp = [] %}
+          {% if q %}{% set _ = qp.append("q=" ~ (q|urlencode)) %}{% endif %}
+          {% if listingType %}{% set _ = qp.append("type=" ~ listingType) %}{% endif %}
+          {% if category %}{% set _ = qp.append("category=" ~ (category|urlencode)) %}{% endif %}
+          {% if itemCondition %}{% set _ = qp.append("condition=" ~ itemCondition) %}{% endif %}
+          {% if sort %}{% set _ = qp.append("sort=" ~ sort) %}{% endif %}
+          {% if location %}{% set _ = qp.append("location=" ~ (location|urlencode)) %}{% endif %}
+          {% if minPrice %}{% set _ = qp.append("min_price=" ~ (minPrice|urlencode)) %}{% endif %}
+          {% if maxPrice %}{% set _ = qp.append("max_price=" ~ (maxPrice|urlencode)) %}{% endif %}
+          {% if withPhotos %}{% set _ = qp.append("photos=" ~ withPhotos) %}{% endif %}
+          {% set qs = qp|join("&") %}
+
+          {% if page > 1 %}
+            <a class="btn" href="{{ base }}{{ qs }}&page={{ page - 1 }}">Anterior</a>
+          {% endif %}
+          {% if page < totalPages %}
+            <a class="btn" href="{{ base }}{{ qs }}&page={{ page + 1 }}">Siguiente</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endif %}
+  </section>
+</div>
+
+{% include "partials/footer.html" %}
+

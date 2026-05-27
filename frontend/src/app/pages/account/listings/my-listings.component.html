@@ -1,0 +1,57 @@
+<div class="container">
+  <div class="panel wide">
+    <div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center">
+      <div>
+        <h2>Mis publicaciones</h2>
+        <p class="hint">Todo lo que publicaste queda guardado en la base de datos con sus fotos.</p>
+      </div>
+      <a class="btn-primary" routerLink="/sell">Nueva publicación</a>
+    </div>
+
+    @if (error) {
+      <div class="error">{{ error }}</div>
+    } @else if (!products.length) {
+      <p class="hint" style="margin-top: 12px">Aún no tienes anuncios.</p>
+    } @else {
+      <div class="table-wrap" style="margin-top: 14px">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Anuncio</th>
+              <th>Tipo</th>
+              <th>Precio</th>
+              <th>Fotos</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of products; track p.id) {
+              <tr>
+                <td>
+                  <div style="display: flex; gap: 10px; align-items: center">
+                    @if (p.coverImageUrl) {
+                      <img [src]="p.coverImageUrl" alt="" width="56" height="56" style="border-radius: 10px; object-fit: cover" />
+                    }
+                    <div>
+                      <div style="font-weight: 1000">{{ p.title }}</div>
+                      <div class="hint">{{ p.category }} · {{ p.location }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ typeLabel(p.listing_type) }}</td>
+                <td>{{ formatPrice(p.price_cents, p.listing_type) }}</td>
+                <td>{{ p.image_count || 0 }}</td>
+                <td>{{ p.status || 'active' }}</td>
+                <td>
+                  <a class="btn" [routerLink]="['/products', p.id]">Ver</a>
+                  <a class="btn secondary" [href]="'/products/' + p.id + '/edit'" style="margin-left: 6px">Editar</a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

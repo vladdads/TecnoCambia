@@ -1,0 +1,77 @@
+<div class="container">
+  <div class="panel wide">
+    <h2>Administración</h2>
+    <p class="hint">Aprueba o rechaza identidades. Los registros y publicaciones se almacenan en SQLite.</p>
+
+    @if (error) {
+      <div class="error">{{ error }}</div>
+    }
+    @if (actionMsg) {
+      <div class="flash warn" style="border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.1)">
+        {{ actionMsg }}
+      </div>
+    }
+
+    @if (data) {
+      <div class="admin-stats">
+        <div class="admin-stat-card">
+          <div class="hint">Usuarios</div>
+          <div class="admin-stat-num">{{ data.counts.users }}</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="hint">Publicaciones</div>
+          <div class="admin-stat-num">{{ data.counts.products }}</div>
+        </div>
+        <div class="admin-stat-card admin-stat-card--alert">
+          <div class="hint">Identidad pendiente</div>
+          <div class="admin-stat-num">{{ data.counts.pendingIdentity }}</div>
+        </div>
+      </div>
+
+      <h3 style="margin: 18px 0 10px; font-size: 14px; color: var(--tc-navy); text-transform: uppercase; letter-spacing: 0.4px">
+        Verificación de identidad
+      </h3>
+
+      @if (!data.pendingUsers.length) {
+        <p class="hint">Sin solicitudes pendientes.</p>
+      } @else {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>CURP</th>
+                <th>INE</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of data.pendingUsers; track u.id) {
+                <tr>
+                  <td>
+                    <div style="font-weight: 1000">{{ u.name }}</div>
+                    <div class="hint">{{ u.email }}</div>
+                  </td>
+                  <td style="font-family: ui-monospace, monospace">{{ u.curp }}</td>
+                  <td>
+                    <a class="btn" [href]="u.ineImageUrl" target="_blank" rel="noopener">Ver INE</a>
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                      <button type="button" class="btn-primary" (click)="identity(u.id, 'approve')">Aprobar</button>
+                      <button type="button" class="btn secondary" (click)="identity(u.id, 'reject')">Rechazar</button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <p style="margin-top: 16px">
+        <a class="btn" [href]="api.externalUrl('/admin/backup')">Descargar backup de la base de datos</a>
+      </p>
+    }
+  </div>
+</div>

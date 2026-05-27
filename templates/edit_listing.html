@@ -1,0 +1,83 @@
+{% set title = "Editar publicación | Tecnocambia" %}
+{% set listingType = None %}
+{% set q = "" %}
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <h2>Editar publicación</h2>
+  <div class="hint">Actualiza el título, descripción, ubicación y estado.</div>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form action="/me/listings/{{ product['id'] }}/edit" method="post" style="margin-top:12px;">
+    <div class="field">
+      <label>Título</label>
+      <input name="title" required value="{{ product['title'] }}" />
+    </div>
+
+    <div class="field">
+      <label>Ubicación</label>
+      <input name="location" required value="{{ product['location'] }}" />
+    </div>
+
+    <div class="field">
+      <label>Estado</label>
+      <select name="status" required>
+        <option value="active" {{ 'selected' if product['status']=='active' else '' }}>Activa</option>
+        <option value="paused" {{ 'selected' if product['status']=='paused' else '' }}>Pausada</option>
+        <option value="reserved" {{ 'selected' if product['status']=='reserved' else '' }}>Reservada</option>
+        <option value="completed" {{ 'selected' if product['status']=='completed' else '' }}>Finalizada</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Descripción</label>
+      <textarea name="description" required>{{ product['description'] }}</textarea>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+      <button class="btn-primary" type="submit">Guardar</button>
+      <a class="btn" href="/me/listings">Cancelar</a>
+    </div>
+  </form>
+
+  <div style="margin-top:18px; border-top:1px solid rgba(26,58,92,.12); padding-top:14px;">
+    <h3 style="margin:0 0 10px; font-size:14px; color:var(--tc-navy); letter-spacing:.4px; text-transform:uppercase;">Imágenes</h3>
+
+    {% if images and images|length > 0 %}
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px;">
+        {% for img in images %}
+          <div style="border:1px solid var(--tc-border); border-radius:14px; overflow:hidden; background:#fff;">
+            <div style="height:92px; background:rgba(37,99,235,.06);">
+              <img src="/uploads/{{ img['filename'] }}" alt="" style="width:100%; height:100%; object-fit:cover;" />
+            </div>
+            <div style="padding:10px; display:flex; gap:8px; flex-wrap:wrap;">
+              {% if img['is_cover'] == 1 %}
+                <span class="badge">Principal</span>
+              {% else %}
+                <form action="/me/listings/{{ product['id'] }}/images/{{ img['id'] }}/cover" method="post" style="display:inline">
+                  <button class="btn secondary" type="submit">Hacer principal</button>
+                </form>
+              {% endif %}
+              <form action="/me/listings/{{ product['id'] }}/images/{{ img['id'] }}/delete" method="post" style="display:inline" onsubmit="return confirm('¿Eliminar esta imagen?');">
+                <button class="btn" type="submit">Eliminar</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="hint">No hay imágenes aún.</div>
+    {% endif %}
+
+    <form action="/me/listings/{{ product['id'] }}/images/add" method="post" enctype="multipart/form-data" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <input name="images" type="file" accept="image/*" multiple />
+      <button class="btn-primary" type="submit">Agregar imágenes</button>
+    </form>
+  </div>
+</div>
+
+{% include "partials/footer.html" %}
+
