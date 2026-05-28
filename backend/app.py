@@ -244,7 +244,10 @@ class PgDB:
 
     def executemany(self, sql: str, seq_of_params):
         assert self._conn is not None
-        return self._conn.executemany(self._rewrite_sql(sql), seq_of_params)
+        q = self._rewrite_sql(sql)
+        with self._conn.cursor() as cur:
+            cur.executemany(q, seq_of_params)
+        return None
 
 
 def get_db() -> PgDB:
