@@ -3,13 +3,15 @@ import re
 import ssl
 import smtplib
 import uuid
-import sqlite3
 import time
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from datetime import timedelta
 from datetime import datetime, timezone, timedelta as td
+
+import psycopg
+from psycopg.rows import dict_row
 
 from flask import (
     Flask,
@@ -39,13 +41,16 @@ except ImportError:
 
 # En la nube: monta un disco persistente y define DATA_DIR=/var/data (Render, etc.)
 DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR)))
-DB_PATH = DATA_DIR / "db" / "tecnocambia.sqlite"
 SCHEMA_PATH = BASE_DIR / "db" / "schema.sql"
 UPLOADS_DIR = DATA_DIR / "uploads"
 
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 ALLOWED_DOC_TYPES = ALLOWED_TYPES.union({"application/pdf"})
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+DATABASE_URL = (os.environ.get("DATABASE_URL") or "").strip()
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL no configurada (PostgreSQL requerido).")
 
 PRESET_CATEGORIES = [
     "Celulares",
@@ -196,188 +201,63 @@ def send_password_reset_email(to_email: str, reset_url: str) -> None:
             smtp.send_message(msg)
 
 
-def get_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON;")
-    return conn
+class PgDB:
+    """Thin wrapper to keep the existing sqlite-style queries working on Postgres.
+
+    It adapts:
+    - SQLite placeholders `?` -> psycopg `%s`
+    - SQLite `datetime('now')` -> `NOW()`
+    """
+
+    def __init__(self, dsn: str):
+        self._dsn = dsn
+        self._conn: psycopg.Connection | None = None
+
+    def __enter__(self):
+        self._conn = psycopg.connect(self._dsn, row_factory=dict_row)
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        assert self._conn is not None
+        try:
+            if exc_type:
+                self._conn.rollback()
+            else:
+                self._conn.commit()
+        finally:
+            self._conn.close()
+            self._conn = None
+        return False
+
+    def _rewrite_sql(self, sql: str) -> str:
+        # Convert sqlite-ish patterns used in this codebase to Postgres/psycopg.
+        # - `?` positional params -> `%s`
+        # - `:name` named params -> `%(name)s`
+        # - `datetime('now')` -> `NOW()`
+        out = sql.replace("datetime('now')", "NOW()").replace("?", "%s")
+        out = re.sub(r"(?<!:):([a-zA-Z_][a-zA-Z0-9_]*)", r"%(\1)s", out)
+        return out
+
+    def execute(self, sql: str, params=None):
+        assert self._conn is not None
+        return self._conn.execute(self._rewrite_sql(sql), params or ())
+
+    def executemany(self, sql: str, seq_of_params):
+        assert self._conn is not None
+        return self._conn.executemany(self._rewrite_sql(sql), seq_of_params)
+
+
+def get_db() -> PgDB:
+    return PgDB(DATABASE_URL)
 
 
 def init_db() -> None:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    schema = SCHEMA_PATH.read_text(encoding="utf-8")
     with get_db() as db:
-        db.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
-        apply_migrations(db)
-
-
-def _has_column(db: sqlite3.Connection, table: str, column: str) -> bool:
-    rows = db.execute(f"PRAGMA table_info({table})").fetchall()
-    return any(r["name"] == column for r in rows)
-
-
-def _has_table(db: sqlite3.Connection, table: str) -> bool:
-    row = db.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?",
-        (table,),
-    ).fetchone()
-    return bool(row)
-
-
-def apply_migrations(db: sqlite3.Connection) -> None:
-    # Columns added after initial release
-    if _has_table(db, "users") and not _has_column(db, "users", "is_admin"):
-        db.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
-
-    if _has_table(db, "products"):
-        if not _has_column(db, "products", "brand"):
-            db.execute("ALTER TABLE products ADD COLUMN brand TEXT")
-        if not _has_column(db, "products", "model"):
-            db.execute("ALTER TABLE products ADD COLUMN model TEXT")
-        if not _has_column(db, "products", "year"):
-            db.execute("ALTER TABLE products ADD COLUMN year INTEGER")
-        if not _has_column(db, "products", "accessories"):
-            db.execute("ALTER TABLE products ADD COLUMN accessories TEXT")
-        if not _has_column(db, "products", "reserved_by"):
-            db.execute("ALTER TABLE products ADD COLUMN reserved_by INTEGER")
-        if not _has_column(db, "products", "reserved_at"):
-            db.execute("ALTER TABLE products ADD COLUMN reserved_at TEXT")
-
-    if _has_table(db, "product_images") and not _has_column(db, "product_images", "is_cover"):
-        db.execute("ALTER TABLE product_images ADD COLUMN is_cover INTEGER NOT NULL DEFAULT 0")
-
-    if _has_table(db, "users"):
-        if not _has_column(db, "users", "identity_verification_status"):
-            db.execute(
-                "ALTER TABLE users ADD COLUMN identity_verification_status TEXT NOT NULL DEFAULT 'verified'"
-            )
-        if not _has_column(db, "users", "curp"):
-            db.execute("ALTER TABLE users ADD COLUMN curp TEXT")
-        if not _has_column(db, "users", "ine_image_filename"):
-            db.execute("ALTER TABLE users ADD COLUMN ine_image_filename TEXT")
-        if not _has_column(db, "users", "curp_document_filename"):
-            db.execute("ALTER TABLE users ADD COLUMN curp_document_filename TEXT")
-
-    # Tables created after initial release (for pre-existing DBs)
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS conversation_reads (
-          conversation_id INTEGER NOT NULL,
-          user_id INTEGER NOT NULL,
-          last_read_message_id INTEGER,
-          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-          PRIMARY KEY (conversation_id, user_id),
-          FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS message_images (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          message_id INTEGER NOT NULL,
-          filename TEXT NOT NULL,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS favorites (
-          user_id INTEGER NOT NULL,
-          product_id INTEGER NOT NULL,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          PRIMARY KEY (user_id, product_id),
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS saved_searches (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          name TEXT NOT NULL,
-          query_string TEXT NOT NULL,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS viewed_products (
-          user_id INTEGER NOT NULL,
-          product_id INTEGER NOT NULL,
-          last_viewed_at TEXT NOT NULL DEFAULT (datetime('now')),
-          PRIMARY KEY (user_id, product_id),
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS reports (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          reporter_id INTEGER NOT NULL,
-          product_id INTEGER,
-          reported_user_id INTEGER,
-          reason TEXT NOT NULL,
-          details TEXT,
-          status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','reviewed','closed')),
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
-          FOREIGN KEY (reported_user_id) REFERENCES users(id) ON DELETE SET NULL
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS blocks (
-          blocker_id INTEGER NOT NULL,
-          blocked_id INTEGER NOT NULL,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          PRIMARY KEY (blocker_id, blocked_id),
-          FOREIGN KEY (blocker_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS reviews (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          reviewer_id INTEGER NOT NULL,
-          reviewed_id INTEGER NOT NULL,
-          product_id INTEGER NOT NULL,
-          rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-          comment TEXT,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          UNIQUE (reviewer_id, reviewed_id, product_id),
-          FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (reviewed_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS password_resets (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          token TEXT NOT NULL UNIQUE,
-          expires_at TEXT NOT NULL,
-          used_at TEXT,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-        """
-    )
+        for stmt in [s.strip() for s in schema.split(";")]:
+            if stmt:
+                db.execute(stmt)
 
 
 def ensure_seed_data() -> None:
@@ -392,7 +272,7 @@ def ensure_seed_data() -> None:
             """,
             ("Tecnocambia Demo", "demo@tecnocambia.local", generate_password_hash("demo1234")),
         )
-        db.execute("UPDATE users SET is_admin = 1 WHERE email = ?", ("demo@tecnocambia.local",))
+        db.execute("UPDATE users SET is_admin = TRUE WHERE email = ?", ("demo@tecnocambia.local",))
         user_id = db.execute("SELECT id FROM users WHERE email = ?", ("demo@tecnocambia.local",)).fetchone()["id"]
         db.executemany(
             """
@@ -501,13 +381,6 @@ def require_admin():
     if not is_admin():
         return render_template("404.html"), 404
     return None
-
-
-def backup_db_path():
-    bdir = BASE_DIR / "backups"
-    bdir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    return bdir / f"tecnocambia-{ts}.sqlite"
 
 
 @app.before_request
@@ -622,7 +495,10 @@ def block_user(user_id: int):
     if user_id == session["user_id"]:
         return redirect("/app/products")
     with get_db() as db:
-        db.execute("INSERT OR IGNORE INTO blocks (blocker_id, blocked_id) VALUES (?, ?)", (session["user_id"], user_id))
+        db.execute(
+            "INSERT INTO blocks (blocker_id, blocked_id) VALUES (?, ?) ON CONFLICT (blocker_id, blocked_id) DO NOTHING",
+            (session["user_id"], user_id),
+        )
     return redirect("/app/products")
 
 
@@ -685,8 +561,9 @@ def review_post(product_id: int):
         other = p["reserved_by"] if uid == p["user_id"] else p["user_id"]
         db.execute(
             """
-            INSERT OR IGNORE INTO reviews (reviewer_id, reviewed_id, product_id, rating, comment)
+            INSERT INTO reviews (reviewer_id, reviewed_id, product_id, rating, comment)
             VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (reviewer_id, reviewed_id, product_id) DO NOTHING
             """,
             (uid, other, product_id, rating_i, comment[:600] or None),
         )
@@ -707,7 +584,10 @@ def favorite_toggle(product_id: int):
         if exists:
             db.execute("DELETE FROM favorites WHERE user_id = ? AND product_id = ?", (uid, product_id))
         else:
-            db.execute("INSERT OR IGNORE INTO favorites (user_id, product_id) VALUES (?, ?)", (uid, product_id))
+            db.execute(
+                "INSERT INTO favorites (user_id, product_id) VALUES (?, ?) ON CONFLICT (user_id, product_id) DO NOTHING",
+                (uid, product_id),
+            )
     return redirect(f"/app/products/{product_id}")
 
 
@@ -733,7 +613,7 @@ def my_favorites():
             JOIN products p ON p.id = f.product_id
             JOIN users u ON u.id = p.user_id
             WHERE f.user_id = ? AND p.status = 'active'
-            ORDER BY datetime(f.created_at) DESC
+            ORDER BY f.created_at DESC
             """,
             (uid,),
         ).fetchall()
@@ -763,7 +643,7 @@ def my_viewed():
             JOIN products p ON p.id = v.product_id
             JOIN users u ON u.id = p.user_id
             WHERE v.user_id = ?
-            ORDER BY datetime(v.last_viewed_at) DESC
+            ORDER BY v.last_viewed_at DESC
             LIMIT 80
             """,
             (uid,),
@@ -797,7 +677,7 @@ def my_saved_searches():
     uid = session["user_id"]
     with get_db() as db:
         rows = db.execute(
-            "SELECT * FROM saved_searches WHERE user_id = ? ORDER BY datetime(created_at) DESC",
+            "SELECT * FROM saved_searches WHERE user_id = ? ORDER BY created_at DESC",
             (uid,),
         ).fetchall()
     return render_template("saved_searches.html", searches=rows)
@@ -894,8 +774,8 @@ def messages():
               ) AS cover_image,
               bu.name AS buyer_name,
               su.name AS seller_name,
-              (SELECT body FROM messages m WHERE m.conversation_id = c.id ORDER BY datetime(m.created_at) DESC, m.id DESC LIMIT 1) AS last_message,
-              (SELECT created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY datetime(m.created_at) DESC, m.id DESC LIMIT 1) AS last_message_at,
+              (SELECT body FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message,
+              (SELECT created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_at,
               (SELECT MAX(id) FROM messages m WHERE m.conversation_id = c.id) AS last_message_id,
               (SELECT last_read_message_id FROM conversation_reads cr WHERE cr.conversation_id = c.id AND cr.user_id = ?) AS last_read_message_id
             FROM conversations c
@@ -903,7 +783,7 @@ def messages():
             JOIN users bu ON bu.id = c.buyer_id
             JOIN users su ON su.id = c.seller_id
             WHERE c.buyer_id = ? OR c.seller_id = ?
-            ORDER BY datetime(COALESCE(last_message_at, c.created_at)) DESC
+            ORDER BY COALESCE(last_message_at, c.created_at) DESC
             """,
             (uid, uid, uid),
         ).fetchall()
@@ -935,14 +815,14 @@ def new_message(product_id: int):
         if conv:
             conv_id = conv["id"]
         else:
-            cur = db.execute(
+            conv_id = db.execute(
                 """
                 INSERT INTO conversations (product_id, buyer_id, seller_id)
                 VALUES (?, ?, ?)
+                RETURNING id
                 """,
                 (product_id, uid, seller_id),
-            )
-            conv_id = cur.lastrowid
+            ).fetchone()["id"]
 
     return redirect(f"/messages/{conv_id}")
 
@@ -984,7 +864,7 @@ def conversation(conversation_id: int):
             FROM messages m
             JOIN users u ON u.id = m.sender_id
             WHERE m.conversation_id = ?
-            ORDER BY datetime(m.created_at) ASC, m.id ASC
+            ORDER BY m.created_at ASC, m.id ASC
             """,
             (conversation_id,),
         ).fetchall()
@@ -1035,11 +915,10 @@ def conversation_post(conversation_id: int):
         conv = db.execute("SELECT * FROM conversations WHERE id = ?", (conversation_id,)).fetchone()
         if not conv or (conv["buyer_id"] != uid and conv["seller_id"] != uid):
             return render_template("404.html"), 404
-        cur = db.execute(
-            "INSERT INTO messages (conversation_id, sender_id, body) VALUES (?, ?, ?)",
+        msg_id = db.execute(
+            "INSERT INTO messages (conversation_id, sender_id, body) VALUES (?, ?, ?) RETURNING id",
             (conversation_id, uid, body),
-        )
-        msg_id = cur.lastrowid
+        ).fetchone()["id"]
 
         files = request.files.getlist("images") if request.files else []
         try:
@@ -1228,11 +1107,10 @@ def forgot_password_post():
     with get_db() as db:
         user = db.execute("SELECT id, email FROM users WHERE email = ?", (email,)).fetchone()
         if user:
-            cur = db.execute(
-                "INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)",
+            reset_row_id = db.execute(
+                "INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?) RETURNING id",
                 (user["id"], token, expires_at),
-            )
-            reset_row_id = cur.lastrowid
+            ).fetchone()["id"]
 
             if not mail_is_configured():
                 if mail_debug_mode():
@@ -1463,12 +1341,13 @@ def sell_post():
         images = _save_images(image_files)
 
         with get_db() as db:
-            cur = db.execute(
+            product_id = db.execute(
                 """
                 INSERT INTO products
                   (user_id, title, description, listing_type, price_cents, category, brand, model, year, accessories, item_condition, location)
                 VALUES
                   (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
                 """,
                 (
                     session["user_id"],
@@ -1484,10 +1363,9 @@ def sell_post():
                     item_condition,
                     location,
                 ),
-            )
-            product_id = cur.lastrowid
+            ).fetchone()["id"]
             for i, fn in enumerate(images):
-                is_cover = 1 if i == 0 else 0
+                is_cover = True if i == 0 else False
                 db.execute(
                     "INSERT INTO product_images (product_id, filename, is_cover) VALUES (?, ?, ?)",
                     (product_id, fn, is_cover),
@@ -1516,7 +1394,7 @@ def my_listings():
               ) AS cover_image
             FROM products p
             WHERE p.user_id = ?
-            ORDER BY datetime(p.created_at) DESC
+            ORDER BY p.created_at DESC
             """,
             (session["user_id"],),
         ).fetchall()
@@ -1542,7 +1420,7 @@ def my_offers():
             JOIN products p ON p.id = o.product_id
             JOIN users u ON u.id = o.buyer_id
             WHERE p.user_id = ?
-            ORDER BY datetime(o.created_at) DESC
+            ORDER BY o.created_at DESC
             """,
             (uid,),
         ).fetchall()
@@ -1655,7 +1533,7 @@ def my_purchases():
             JOIN products p ON p.id = o.product_id
             JOIN users su ON su.id = p.user_id
             WHERE o.buyer_id = ?
-            ORDER BY datetime(o.created_at) DESC
+            ORDER BY o.created_at DESC
             """,
             (uid,),
         ).fetchall()
@@ -1678,7 +1556,7 @@ def admin_home():
             SELECT r.*, u.name AS reporter_name
             FROM reports r
             JOIN users u ON u.id = r.reporter_id
-            ORDER BY datetime(r.created_at) DESC
+            ORDER BY r.created_at DESC
             LIMIT 20
             """
         ).fetchall()
@@ -1688,7 +1566,7 @@ def admin_home():
             FROM users
             WHERE identity_verification_status = 'pending'
               AND ine_image_filename IS NOT NULL
-            ORDER BY datetime(created_at) DESC
+            ORDER BY created_at DESC
             LIMIT 50
             """
         ).fetchall()
@@ -1733,23 +1611,11 @@ def admin_backup():
     r = require_admin()
     if r:
         return r
-    dest = backup_db_path()
-    # safest portable backup for SQLite
-    src = sqlite3.connect(DB_PATH)
-    try:
-        dst = sqlite3.connect(dest)
-        with dst:
-            src.backup(dst)
-    finally:
-        try:
-            src.close()
-        except Exception:
-            pass
-        try:
-            dst.close()
-        except Exception:
-            pass
-    return send_file(dest, as_attachment=True, download_name=dest.name)
+    return (
+        "Backup directo no disponible en PostgreSQL. Usa los backups/snapshots de Render Postgres.",
+        501,
+        {"Content-Type": "text/plain; charset=utf-8"},
+    )
 
 
 @app.get("/me/listings/<int:product_id>/edit")
@@ -1827,11 +1693,11 @@ def add_listing_images(product_id: int):
         imgs = _save_images(files[:6])
 
         has_cover = db.execute(
-            "SELECT 1 FROM product_images WHERE product_id = ? AND is_cover = 1 LIMIT 1",
+            "SELECT 1 FROM product_images WHERE product_id = ? AND is_cover = TRUE LIMIT 1",
             (product_id,),
         ).fetchone()
         for i, fn in enumerate(imgs):
-            is_cover = 1 if (not has_cover and i == 0) else 0
+            is_cover = True if (not has_cover and i == 0) else False
             db.execute(
                 "INSERT INTO product_images (product_id, filename, is_cover) VALUES (?, ?, ?)",
                 (product_id, fn, is_cover),
@@ -1857,8 +1723,8 @@ def set_listing_cover(product_id: int, image_id: int):
         ).fetchone()
         if not ok:
             return render_template("404.html"), 404
-        db.execute("UPDATE product_images SET is_cover = 0 WHERE product_id = ?", (product_id,))
-        db.execute("UPDATE product_images SET is_cover = 1 WHERE id = ? AND product_id = ?", (image_id, product_id))
+        db.execute("UPDATE product_images SET is_cover = FALSE WHERE product_id = ?", (product_id,))
+        db.execute("UPDATE product_images SET is_cover = TRUE WHERE id = ? AND product_id = ?", (image_id, product_id))
     return redirect(f"/me/listings/{product_id}/edit")
 
 
@@ -1881,13 +1747,13 @@ def delete_listing_image(product_id: int, image_id: int):
             return render_template("404.html"), 404
         db.execute("DELETE FROM product_images WHERE id = ? AND product_id = ?", (image_id, product_id))
 
-        if int(row["is_cover"]) == 1:
+        if bool(row["is_cover"]):
             nxt = db.execute(
                 "SELECT id FROM product_images WHERE product_id = ? ORDER BY id ASC LIMIT 1",
                 (product_id,),
             ).fetchone()
             if nxt:
-                db.execute("UPDATE product_images SET is_cover = 1 WHERE id = ?", (nxt["id"],))
+                db.execute("UPDATE product_images SET is_cover = TRUE WHERE id = ?", (nxt["id"],))
 
     try:
         (UPLOADS_DIR / row["filename"]).unlink(missing_ok=True)
@@ -2004,12 +1870,12 @@ def _products_filter_from_request():
         where.append("EXISTS (SELECT 1 FROM product_images pi WHERE pi.product_id = p.id)")
 
     if sort == "price_asc":
-        order_by = "CASE WHEN p.price_cents IS NULL THEN 1 ELSE 0 END, p.price_cents ASC, datetime(p.created_at) DESC"
+        order_by = "CASE WHEN p.price_cents IS NULL THEN 1 ELSE 0 END, p.price_cents ASC, p.created_at DESC"
     elif sort == "price_desc":
-        order_by = "CASE WHEN p.price_cents IS NULL THEN 1 ELSE 0 END, p.price_cents DESC, datetime(p.created_at) DESC"
+        order_by = "CASE WHEN p.price_cents IS NULL THEN 1 ELSE 0 END, p.price_cents DESC, p.created_at DESC"
     else:
         sort = "recent"
-        order_by = "datetime(p.created_at) DESC"
+        order_by = "p.created_at DESC"
 
     params["limit"] = per_page
     params["offset"] = (page_i - 1) * per_page
@@ -2318,12 +2184,13 @@ def api_sell():
         images = _save_images(image_files)
 
         with get_db() as db:
-            cur = db.execute(
+            product_id = db.execute(
                 """
                 INSERT INTO products
                   (user_id, title, description, listing_type, price_cents, category, brand, model, year, accessories, item_condition, location)
                 VALUES
                   (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
                 """,
                 (
                     session["user_id"],
@@ -2339,10 +2206,9 @@ def api_sell():
                     item_condition,
                     location,
                 ),
-            )
-            product_id = cur.lastrowid
+            ).fetchone()["id"]
             for i, fn in enumerate(images):
-                is_cover = 1 if i == 0 else 0
+                is_cover = True if i == 0 else False
                 db.execute(
                     "INSERT INTO product_images (product_id, filename, is_cover) VALUES (?, ?, ?)",
                     (product_id, fn, is_cover),
@@ -2493,7 +2359,7 @@ def api_me_listings():
               (SELECT COUNT(*) FROM product_images WHERE product_id = p.id) AS image_count
             FROM products p
             WHERE p.user_id = ?
-            ORDER BY datetime(p.created_at) DESC
+            ORDER BY p.created_at DESC
             """,
             (uid,),
         ).fetchall()
@@ -2529,7 +2395,7 @@ def api_admin_overview():
             FROM users
             WHERE identity_verification_status = 'pending'
               AND ine_image_filename IS NOT NULL
-            ORDER BY datetime(created_at) DESC
+            ORDER BY created_at DESC
             LIMIT 50
             """
         ).fetchall()
