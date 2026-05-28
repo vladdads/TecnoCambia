@@ -1,0 +1,12 @@
+{% include "partials/header.html" with context %}
+
+<div class="panel">
+  <h2 style="margin:0;">{{ title or "Mensaje" }}</h2>
+  <div class="hint" style="margin-top:10px;">{{ message or "" }}</div>
+  <div style="margin-top:14px;">
+    <a class="pill" href="/app/products">Volver al inicio</a>
+  </div>
+</div>
+
+{% include "partials/footer.html" %}
+

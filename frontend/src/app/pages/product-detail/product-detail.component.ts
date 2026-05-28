@@ -10,7 +10,7 @@ import { SeoService } from '../../services/seo.service';
 })
 export class ProductDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly api = inject(ApiService);
+  readonly api = inject(ApiService);
   private readonly seo = inject(SeoService);
 
   product: ProductDetail | null = null;
