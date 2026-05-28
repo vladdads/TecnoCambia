@@ -65,7 +65,7 @@
       </div>
       <div>
         <div class="k">Publicado</div>
-        <div class="v">{{ (product['created_at'] or '')[:10] }}</div>
+        <div class="v">{{ fmt_dt(product['created_at'], '%Y-%m-%d') }}</div>
       </div>
     </div>
 

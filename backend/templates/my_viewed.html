@@ -38,7 +38,7 @@
               <span>·</span>
               <span>{{ p['location'] }}</span>
             </div>
-            <div class="hint" style="margin-top:8px;">Visto: {{ (p['last_viewed_at'] or '')[:16] }}</div>
+            <div class="hint" style="margin-top:8px;">Visto: {{ fmt_dt(p['last_viewed_at'], '%Y-%m-%d %H:%M') }}</div>
           </div>
         </a>
       {% endfor %}

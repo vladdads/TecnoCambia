@@ -115,6 +115,28 @@ app.logger.setLevel(logging.INFO)
 _RATE = {}
 
 
+def fmt_dt(value, fmt: str = "%Y-%m-%d %H:%M") -> str:
+    """Format datetimes coming from Postgres (or strings from older rows) for Jinja templates."""
+
+    if not value:
+        return ""
+    if hasattr(value, "strftime"):
+        try:
+            return value.strftime(fmt)
+        except Exception:
+            return str(value)
+    s = str(value)
+    # Common case: ISO strings like "2026-05-27 12:34:56.123+00:00"
+    if fmt == "%Y-%m-%d %H:%M":
+        return s[:16]
+    if fmt == "%Y-%m-%d":
+        return s[:10]
+    return s
+
+
+app.jinja_env.globals["fmt_dt"] = fmt_dt
+
+
 @app.after_request
 def apply_cors_headers(resp):
     origin = (request.headers.get("Origin") or "").strip().rstrip("/")

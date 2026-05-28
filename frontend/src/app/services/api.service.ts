@@ -94,9 +94,17 @@ export class ApiService {
   }
 
   async refreshSession(): Promise<void> {
-    const res = await firstValueFrom(this.http.get<{ user: SessionUser | null }>(this.apiUrl('/api/session'), { withCredentials: true }));
-    this.user.set(res.user ?? null);
-    this.sessionLoaded.set(true);
+    try {
+      const res = await firstValueFrom(
+        this.http.get<{ user: SessionUser | null }>(this.apiUrl('/api/session'), { withCredentials: true }),
+      );
+      this.user.set(res.user ?? null);
+      this.sessionLoaded.set(true);
+    } catch {
+      // If the backend is waking up or returns an error, do not break navigation.
+      this.user.set(null);
+      this.sessionLoaded.set(true);
+    }
   }
 
   clearLocalUser(): void {

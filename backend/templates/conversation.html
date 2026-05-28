@@ -50,7 +50,7 @@
                   {% endfor %}
                 </div>
               {% endif %}
-              <div class="hint" style="margin-top:6px; text-align:right;">{{ (m['created_at'] or '')[:16] }}</div>
+              <div class="hint" style="margin-top:6px; text-align:right;">{{ fmt_dt(m['created_at'], '%Y-%m-%d %H:%M') }}</div>
             </div>
           </div>
         {% endfor %}

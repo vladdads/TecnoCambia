@@ -87,7 +87,7 @@
       <tbody>
         {% for r in reports %}
           <tr>
-            <td class="hint">{{ (r['created_at'] or '')[:16] }}</td>
+            <td class="hint">{{ fmt_dt(r['created_at'], '%Y-%m-%d %H:%M') }}</td>
             <td>{{ r['reporter_name'] }}</td>
             <td>
               <div style="font-weight:1000;">{{ r['reason'] }}</div>
