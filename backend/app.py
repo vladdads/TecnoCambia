@@ -29,6 +29,7 @@ from urllib.parse import quote
 from email.message import EmailMessage
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename, safe_join
+from werkzeug.exceptions import HTTPException
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -135,6 +136,23 @@ def fmt_dt(value, fmt: str = "%Y-%m-%d %H:%M") -> str:
 
 
 app.jinja_env.globals["fmt_dt"] = fmt_dt
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(e: Exception):
+    # Keep normal HTTP exceptions (404/401/etc) as-is
+    if isinstance(e, HTTPException):
+        return e
+    # Log full traceback for Render logs
+    app.logger.exception("Unhandled exception on %s %s", request.method, request.path)
+    return (
+        render_template(
+            "simple_message.html",
+            title="Error interno",
+            message="Ocurrió un error interno. Intenta recargar en unos segundos.",
+        ),
+        500,
+    )
 
 
 @app.after_request
