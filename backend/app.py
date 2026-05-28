@@ -145,14 +145,17 @@ def handle_unexpected_error(e: Exception):
         return e
     # Log full traceback for Render logs
     app.logger.exception("Unhandled exception on %s %s", request.method, request.path)
-    return (
-        render_template(
-            "simple_message.html",
-            title="Error interno",
-            message="Ocurrió un error interno. Intenta recargar en unos segundos.",
-        ),
-        500,
-    )
+    try:
+        return (
+            render_template(
+                "simple_message.html",
+                title="Error interno",
+                message="Ocurrió un error interno. Intenta recargar en unos segundos.",
+            ),
+            500,
+        )
+    except Exception:
+        return ("Internal Server Error", 500)
 
 
 @app.after_request
@@ -806,27 +809,30 @@ def messages():
     with get_db() as db:
         rows = db.execute(
             """
-            SELECT
-              c.*,
-              p.title AS product_title,
-              (
-                SELECT filename FROM product_images
-                WHERE product_id = p.id
-                ORDER BY is_cover DESC, id ASC
-                LIMIT 1
-              ) AS cover_image,
-              bu.name AS buyer_name,
-              su.name AS seller_name,
-              (SELECT body FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message,
-              (SELECT created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_at,
-              (SELECT MAX(id) FROM messages m WHERE m.conversation_id = c.id) AS last_message_id,
-              (SELECT last_read_message_id FROM conversation_reads cr WHERE cr.conversation_id = c.id AND cr.user_id = ?) AS last_read_message_id
-            FROM conversations c
-            JOIN products p ON p.id = c.product_id
-            JOIN users bu ON bu.id = c.buyer_id
-            JOIN users su ON su.id = c.seller_id
-            WHERE c.buyer_id = ? OR c.seller_id = ?
-            ORDER BY COALESCE(last_message_at, c.created_at) DESC
+            WITH convs AS (
+              SELECT
+                c.*,
+                p.title AS product_title,
+                (
+                  SELECT filename FROM product_images
+                  WHERE product_id = p.id
+                  ORDER BY is_cover DESC, id ASC
+                  LIMIT 1
+                ) AS cover_image,
+                bu.name AS buyer_name,
+                su.name AS seller_name,
+                (SELECT body FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message,
+                (SELECT created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_at,
+                (SELECT MAX(id) FROM messages m WHERE m.conversation_id = c.id) AS last_message_id,
+                (SELECT last_read_message_id FROM conversation_reads cr WHERE cr.conversation_id = c.id AND cr.user_id = ?) AS last_read_message_id
+              FROM conversations c
+              JOIN products p ON p.id = c.product_id
+              JOIN users bu ON bu.id = c.buyer_id
+              JOIN users su ON su.id = c.seller_id
+              WHERE c.buyer_id = ? OR c.seller_id = ?
+            )
+            SELECT * FROM convs
+            ORDER BY COALESCE(convs.last_message_at, convs.created_at) DESC
             """,
             (uid, uid, uid),
         ).fetchall()
