@@ -1,12 +1,9 @@
-# Nixpacks: Python + Node para compilar Angular
+# Nixpacks: solo Python (frontend en Vercel u otro host)
 [phases.setup]
-nixPkgs = ["python312", "nodejs_20"]
+nixPkgs = ["python312"]
 
 [phases.install]
 cmds = ["pip install -r requirements.txt"]
-
-[phases.build]
-cmds = ["cd frontend && npm ci && npm run build"]
 
 [start]
 cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"

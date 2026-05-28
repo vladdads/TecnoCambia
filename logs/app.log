@@ -1,3 +1,0 @@
-2026-05-11 23:00:06,634 WARNING Recuperación de contraseña sin SMTP configurado. Enlace que se habría enviado a fabisvpr@gmail.com: http://127.0.0.1:3000/auth/reset/f4e4c033aa1546f3a57bcda24a5fd55b
-2026-05-26 15:44:44,640 WARNING MAIL_DEBUG: enlace de recuperación para fabisvpr@gmail.com: http://127.0.0.1:3000/auth/reset/390935a2fe264abba3e442be47a23941
-2026-05-26 15:46:03,587 WARNING MAIL_DEBUG: enlace de recuperación para fabisvpr@gmail.com: http://127.0.0.1:3000/auth/reset/5c9e369ee8db417da45fd781e61df6ae

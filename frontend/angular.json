@@ -39,7 +39,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "../public/spa",
+            "outputPath": "dist",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "baseHref": "/app/",
@@ -60,7 +60,7 @@
               }
             ],
             "styles": [
-              "../public/styles.css",
+              "public/styles.css",
               "src/styles.scss"
             ],
             "scripts": []
@@ -129,7 +129,7 @@
               }
             ],
             "styles": [
-              "../public/styles.css",
+              "public/styles.css",
               "src/styles.scss"
             ],
             "scripts": []

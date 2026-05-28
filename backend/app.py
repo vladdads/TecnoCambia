@@ -42,7 +42,6 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR)))
 DB_PATH = DATA_DIR / "db" / "tecnocambia.sqlite"
 SCHEMA_PATH = BASE_DIR / "db" / "schema.sql"
 UPLOADS_DIR = DATA_DIR / "uploads"
-SPA_BROWSER = BASE_DIR / "public" / "spa" / "browser"
 
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 ALLOWED_DOC_TYPES = ALLOWED_TYPES.union({"application/pdf"})
@@ -536,20 +535,40 @@ def uploads(filename):
     return send_from_directory(UPLOADS_DIR, filename)
 
 
+def _frontend_app_url(path: str = "/app/products") -> str | None:
+    origin = (os.environ.get("FRONTEND_ORIGIN") or "").strip().rstrip("/")
+    if not origin:
+        return None
+    if not path.startswith("/"):
+        path = "/" + path
+    return f"{origin}{path}"
+
+
 @app.get("/")
 def home():
-    return redirect("/app/products")
+    external = _frontend_app_url("/app/products")
+    if external:
+        return redirect(external)
+    return jsonify({"ok": True, "service": "tecnocambia-api"}), 200
 
 
 @app.get("/products")
 def products():
     qs = request.query_string.decode()
-    return redirect("/app/products" + ("?" + qs if qs else ""))
+    path = "/app/products" + ("?" + qs if qs else "")
+    external = _frontend_app_url(path)
+    if external:
+        return redirect(external)
+    return redirect(path)
 
 
 @app.get("/products/<int:product_id>")
 def product_detail_redirect(product_id: int):
-    return redirect(f"/app/products/{product_id}")
+    path = f"/app/products/{product_id}"
+    external = _frontend_app_url(path)
+    if external:
+        return redirect(external)
+    return redirect(path)
 
 
 @app.get("/report")
@@ -2547,25 +2566,17 @@ def api_admin_identity(user_id: int):
 
 
 @app.get("/app/")
-def spa_index():
-    idx = SPA_BROWSER / "index.html"
-    if not idx.is_file():
-        return (
-            "<p>Compila el frontend Angular: <code>cd frontend && npm run build</code></p>",
-            503,
-            {"Content-Type": "text/html; charset=utf-8"},
-        )
-    return send_from_directory(SPA_BROWSER, "index.html")
-
-
 @app.get("/app/<path:fname>")
-def spa_assets(fname: str):
-    if not SPA_BROWSER.is_dir():
-        return "Compila el frontend Angular (npm run build en /frontend).", 503
-    joined = safe_join(str(SPA_BROWSER), fname)
-    if joined and Path(joined).is_file():
-        return send_file(joined)
-    return send_from_directory(SPA_BROWSER, "index.html")
+def spa_redirect_to_frontend(fname: str = ""):
+    path = "/app/" + fname if fname else "/app/products"
+    external = _frontend_app_url(path)
+    if external:
+        return redirect(external)
+    return (
+        "<p>El frontend está en Vercel. Define <code>FRONTEND_ORIGIN</code> en el backend.</p>",
+        503,
+        {"Content-Type": "text/html; charset=utf-8"},
+    )
 
 
 @app.errorhandler(404)
