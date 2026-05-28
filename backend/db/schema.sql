@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
--- Password reset tokens (no email provider; tokens shown in UI for now)
+-- Password reset tokens (no email provider, tokens shown in UI for now)
 CREATE TABLE IF NOT EXISTS password_resets (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL,
