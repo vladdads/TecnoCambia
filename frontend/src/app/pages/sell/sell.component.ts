@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { SeoService } from '../../services/seo.service';
 
@@ -11,6 +11,7 @@ import { SeoService } from '../../services/seo.service';
 })
 export class SellComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly router = inject(Router);
   private readonly seo = inject(SeoService);
 
   categories: string[] = [];
@@ -65,6 +66,6 @@ export class SellComponent implements OnInit {
       this.error = res.error || 'Error';
       return;
     }
-    location.href = `/app/products/${res.productId}`;
+    await this.router.navigateByUrl(`/products/${res.productId}`);
   }
 }

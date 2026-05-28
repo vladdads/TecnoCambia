@@ -9,7 +9,7 @@ import { SeoService } from '../../../services/seo.service';
   templateUrl: './my-listings.component.html',
 })
 export class MyListingsComponent implements OnInit {
-  private readonly api = inject(ApiService);
+  readonly api = inject(ApiService);
   private readonly seo = inject(SeoService);
 
   products: ProductRow[] = [];

@@ -45,7 +45,7 @@
                 <td>{{ p.status || 'active' }}</td>
                 <td>
                   <a class="btn" [routerLink]="['/products', p.id]">Ver</a>
-                  <a class="btn secondary" [href]="'/products/' + p.id + '/edit'" style="margin-left: 6px">Editar</a>
+                  <a class="btn secondary" [href]="api.externalUrl('/products/' + p.id + '/edit')" style="margin-left: 6px">Editar</a>
                 </td>
               </tr>
             }

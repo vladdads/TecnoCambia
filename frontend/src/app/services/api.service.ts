@@ -120,7 +120,7 @@ export class ApiService {
           {
             email,
             password,
-            next: next || '/app/products',
+            next: next || '/products',
           },
           { withCredentials: true },
         ),

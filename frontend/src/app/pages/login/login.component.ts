@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { SeoService } from '../../services/seo.service';
 
@@ -12,6 +12,7 @@ import { SeoService } from '../../services/seo.service';
 export class LoginComponent implements OnInit {
   readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly seo = inject(SeoService);
 
   email = '';
@@ -24,12 +25,12 @@ export class LoginComponent implements OnInit {
 
   async submit(): Promise<void> {
     this.error = null;
-    const next = this.route.snapshot.queryParamMap.get('next') || '/app/products';
+    const next = this.route.snapshot.queryParamMap.get('next') || '/products';
     const res = await this.api.login(this.email, this.password, next);
     if (!res.ok) {
       this.error = res.error || 'Error';
       return;
     }
-    location.href = res.next || '/app/products';
+    await this.router.navigateByUrl(res.next || '/products');
   }
 }

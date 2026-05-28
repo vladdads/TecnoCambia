@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { SeoService } from '../../services/seo.service';
 
@@ -12,6 +12,7 @@ import { SeoService } from '../../services/seo.service';
 export class RegisterComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly seo = inject(SeoService);
 
   name = '';
@@ -42,7 +43,7 @@ export class RegisterComponent implements OnInit {
     fd.append('password', this.password);
     fd.append('curp', this.curp.toUpperCase());
     fd.append('ine_photo', this.ineFile);
-    const next = this.route.snapshot.queryParamMap.get('next') || '/app/products';
+    const next = this.route.snapshot.queryParamMap.get('next') || '/products';
     fd.append('next', next);
 
     const res = await this.api.register(fd);
@@ -50,6 +51,6 @@ export class RegisterComponent implements OnInit {
       this.error = res.error || 'Error';
       return;
     }
-    location.href = res.next || '/app/products';
+    await this.router.navigateByUrl(res.next || '/products');
   }
 }

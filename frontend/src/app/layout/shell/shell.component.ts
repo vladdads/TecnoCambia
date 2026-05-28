@@ -76,6 +76,6 @@ export class ShellComponent implements OnInit {
 
   async logout(): Promise<void> {
     await this.api.logout();
-    location.href = '/app/products';
+    await this.router.navigateByUrl('/products');
   }
 }
